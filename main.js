@@ -328,6 +328,15 @@ if (window.location.search.includes('calibrate')) {
   repositionMidHandles();
   window.addEventListener('resize', repositionMidHandles);
 
+  /* ── Character position/scale calibration state ── */
+  // Declared here (before getDock/getCharRenderSize are called) to avoid TDZ.
+  const charState = { right: 8, bottom: 0, height: 45 };
+
+  /* ── Anchor calibration state ── */
+  // anchorCal: which normalised point of the image maps to the dock position.
+  // Declared early so updatePanel() (called from applyCharState()) can read it.
+  let anchorCal = { x: 0.5, y: 1.0 };
+
   /* ── Anchor handle (⊕) ── drag to set pivot point on character ── */
   // The ⊕ sits at the dock position (= where the anchor maps on screen).
   // Drag it to the character's butt/feet; on release the character shifts
@@ -394,9 +403,6 @@ if (window.location.search.includes('calibrate')) {
     document.addEventListener('mouseup', onUp);
   });
 
-  /* ── Character position/scale calibration ── */
-  const charState = { right: 8, bottom: 0, height: 45 };
-
   // Make character visible without animation; anchor transform (CSS) handles position
   if (character) {
     character.classList.add('visible');
@@ -412,11 +418,6 @@ if (window.location.search.includes('calibrate')) {
     updatePanel();
   }
   applyCharState();
-
-  /* ── Anchor calibration state ── */
-  // anchorCal: which normalised point of the image maps to the dock position.
-  // Initialised from auto-detection; overwritten by dragging the ⊕ handle.
-  let anchorCal = { x: 0.5, y: 1.0 };
 
   function initAnchorCal() {
     if (!character || !character.complete || !character.naturalWidth) return;
