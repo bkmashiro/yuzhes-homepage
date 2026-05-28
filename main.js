@@ -66,7 +66,11 @@ function zoomIntoScreen(e) {
       setTimeout(() => character.classList.add('visible'), 100);
     }
     if (speechBubble) {
-      setTimeout(() => speechBubble.classList.add('visible'), 600);
+      setTimeout(() => {
+        speechBubble.classList.add('visible');
+        // Auto-hide after 5 seconds
+        setTimeout(() => speechBubble.classList.remove('visible'), 5600);
+      }, 600);
     }
   }, 900);
 

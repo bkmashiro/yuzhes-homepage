@@ -332,63 +332,93 @@ function initDesktopIcons() {
 let activeContextMenu = null;
 
 function dismissContextMenu() {
-  if (activeContextMenu) {
-    activeContextMenu.remove();
-    activeContextMenu = null;
-  }
+  document.querySelectorAll('.context-menu, .context-submenu').forEach(m => m.remove());
+  activeContextMenu = null;
 }
 
 function showContextMenu(x, y, items) {
   dismissContextMenu();
   const menu = document.createElement('div');
   menu.className = 'context-menu';
+
   items.forEach(item => {
     if (item === '---') {
       const sep = document.createElement('div');
       sep.className = 'context-menu-separator';
       menu.appendChild(sep);
-    } else {
-      const row = document.createElement('div');
-      row.className = 'context-menu-item';
-      row.textContent = item.label;
-      if (item.sub) {
-        const arrow = document.createElement('span');
-        arrow.className = 'context-menu-arrow';
-        arrow.textContent = '\u25B6';
-        row.appendChild(arrow);
-      }
-      if (item.action) {
-        row.addEventListener('click', e => {
-          e.stopPropagation();
-          dismissContextMenu();
-          item.action();
-        });
-      } else {
-        row.addEventListener('click', e => {
-          e.stopPropagation();
-          dismissContextMenu();
-        });
-      }
-      menu.appendChild(row);
+      return;
     }
+    const row = document.createElement('div');
+    row.className = 'context-menu-item';
+    // Label span (so arrow stays right-aligned)
+    const label = document.createElement('span');
+    label.textContent = item.label;
+    row.appendChild(label);
+
+    if (item.sub) {
+      const arrow = document.createElement('span');
+      arrow.className = 'context-menu-arrow';
+      arrow.textContent = '\u25B6';
+      row.appendChild(arrow);
+      // Hover to show submenu
+      if (Array.isArray(item.sub)) {
+        let subMenu = null;
+        row.addEventListener('mouseenter', () => {
+          // Dismiss any other open submenu
+          menu.querySelectorAll('.context-submenu').forEach(s => s.remove());
+          subMenu = document.createElement('div');
+          subMenu.className = 'context-menu context-submenu';
+          item.sub.forEach(subItem => {
+            if (subItem === '---') {
+              const sep = document.createElement('div');
+              sep.className = 'context-menu-separator';
+              subMenu.appendChild(sep);
+            } else {
+              const subRow = document.createElement('div');
+              subRow.className = 'context-menu-item';
+              subRow.textContent = subItem.label || subItem;
+              if (subItem.action) subRow.addEventListener('click', e => { e.stopPropagation(); dismissContextMenu(); subItem.action(); });
+              subMenu.appendChild(subRow);
+            }
+          });
+          // Position to the right of the row
+          const rRect = row.getBoundingClientRect();
+          subMenu.style.position = 'fixed';
+          subMenu.style.left = `${rRect.right}px`;
+          subMenu.style.top  = `${rRect.top}px`;
+          document.body.appendChild(subMenu);
+          // Clamp if off-screen
+          const sw = subMenu.offsetWidth, sh = subMenu.offsetHeight;
+          if (rRect.right + sw > window.innerWidth) subMenu.style.left = `${rRect.left - sw}px`;
+          if (rRect.top + sh > window.innerHeight) subMenu.style.top = `${window.innerHeight - sh - 4}px`;
+        });
+        row.addEventListener('mouseleave', e => {
+          if (subMenu && !subMenu.contains(e.relatedTarget)) { subMenu.remove(); subMenu = null; }
+        });
+      }
+    }
+
+    if (item.action) {
+      row.addEventListener('click', e => { e.stopPropagation(); dismissContextMenu(); item.action(); });
+    } else if (!item.sub) {
+      row.addEventListener('click', e => { e.stopPropagation(); dismissContextMenu(); });
+    }
+    menu.appendChild(row);
   });
-  const desktop = document.getElementById('win98-desktop');
-  desktop.appendChild(menu);
-  // Position, clamped to viewport
-  const dRect = desktop.getBoundingClientRect();
-  let left = x - dRect.left;
-  let top = y - dRect.top;
-  // Temporarily show to measure
-  menu.style.left = `${left}px`;
-  menu.style.top = `${top}px`;
-  const mw = menu.offsetWidth;
-  const mh = menu.offsetHeight;
-  if (left + mw > desktop.clientWidth) left = desktop.clientWidth - mw;
-  if (top + mh > desktop.clientHeight - 28) top = desktop.clientHeight - 28 - mh;
+
+  // Append to body and use fixed positioning — bypasses matrix3d transform entirely
+  menu.style.position = 'fixed';
+  document.body.appendChild(menu);
+
+  // Clamp to viewport
+  let left = x, top = y;
+  const mw = menu.offsetWidth, mh = menu.offsetHeight;
+  if (left + mw > window.innerWidth)  left = window.innerWidth  - mw - 4;
+  if (top  + mh > window.innerHeight) top  = window.innerHeight - mh - 4;
   if (left < 0) left = 0;
-  if (top < 0) top = 0;
+  if (top  < 0) top  = 0;
   menu.style.left = `${left}px`;
-  menu.style.top = `${top}px`;
+  menu.style.top  = `${top}px`;
   activeContextMenu = menu;
 }
 
@@ -400,8 +430,8 @@ function initContextMenus() {
 
   // Desktop right-click
   desktop.addEventListener('contextmenu', e => {
-    // Don't show on inputs or text areas
-    if (e.target.closest('input, textarea, a, .window-body')) return;
+    // Don't show on windows, inputs, links
+    if (e.target.closest('.win98-window, input, textarea, a')) return;
     e.preventDefault();
     e.stopPropagation();
 

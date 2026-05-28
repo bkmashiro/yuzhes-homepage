@@ -394,7 +394,7 @@ html, body {
 
 /* ─── Right-click context menu ─── */
 .context-menu {
-  position: absolute;
+  position: fixed;
   background: #c0c0c0;
   border: 2px solid;
   border-color: #fff #808080 #808080 #fff;
