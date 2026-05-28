@@ -381,16 +381,19 @@ function showContextMenu(x, y, items) {
               subMenu.appendChild(subRow);
             }
           });
-          // Position to the right of the row
+          // Position to the right of the parent row, in desktop-local coords
+          subMenu.style.position = 'absolute';
+          desktop.appendChild(subMenu);
           const rRect = row.getBoundingClientRect();
-          subMenu.style.position = 'fixed';
-          subMenu.style.left = `${rRect.right}px`;
-          subMenu.style.top  = `${rRect.top}px`;
-          document.body.appendChild(subMenu);
-          // Clamp if off-screen
+          const toLocal2 = window._viewportToDesktop || ((cx, cy) => { const r = desktop.getBoundingClientRect(); return [cx - r.left, cy - r.top]; });
+          let [sx, sy] = toLocal2(rRect.right, rRect.top);
           const sw = subMenu.offsetWidth, sh = subMenu.offsetHeight;
-          if (rRect.right + sw > window.innerWidth) subMenu.style.left = `${rRect.left - sw}px`;
-          if (rRect.top + sh > window.innerHeight) subMenu.style.top = `${window.innerHeight - sh - 4}px`;
+          const dw2 = desktop.clientWidth, dh2 = desktop.clientHeight - 28;
+          if (sx + sw > dw2) { const [lx] = toLocal2(rRect.left, rRect.top); sx = lx - sw; }
+          if (sy + sh > dh2) sy = dh2 - sh;
+          if (sx < 0) sx = 0; if (sy < 0) sy = 0;
+          subMenu.style.left = `${sx}px`;
+          subMenu.style.top  = `${sy}px`;
         });
         row.addEventListener('mouseleave', e => {
           if (subMenu && !subMenu.contains(e.relatedTarget)) { subMenu.remove(); subMenu = null; }
@@ -406,15 +409,24 @@ function showContextMenu(x, y, items) {
     menu.appendChild(row);
   });
 
-  // Append to body and use fixed positioning — bypasses matrix3d transform entirely
-  menu.style.position = 'fixed';
-  document.body.appendChild(menu);
+  // Position inside #win98-desktop using inverse homography so menu sits
+  // inside the transformed screen (same coordinate space as the Win98 UI).
+  const desktop = document.getElementById('win98-desktop');
+  menu.style.position = 'absolute';
+  desktop.appendChild(menu);
 
-  // Clamp to viewport
-  let left = x, top = y;
+  // Convert viewport clientX/Y → desktop local px
+  const toLocal = window._viewportToDesktop || ((cx, cy) => {
+    const r = desktop.getBoundingClientRect();
+    return [cx - r.left, cy - r.top]; // fallback (no transform)
+  });
+  let [left, top] = toLocal(x, y);
+
+  // Clamp so menu stays within desktop bounds
   const mw = menu.offsetWidth, mh = menu.offsetHeight;
-  if (left + mw > window.innerWidth)  left = window.innerWidth  - mw - 4;
-  if (top  + mh > window.innerHeight) top  = window.innerHeight - mh - 4;
+  const dw = desktop.clientWidth, dh = desktop.clientHeight - 28; // 28 = taskbar
+  if (left + mw > dw) left = dw - mw;
+  if (top  + mh > dh) top  = dh - mh;
   if (left < 0) left = 0;
   if (top  < 0) top  = 0;
   menu.style.left = `${left}px`;

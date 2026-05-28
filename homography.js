@@ -171,6 +171,17 @@ function applyScreenTransform(corners, imgW, imgH, edgeMids = [0, 0, 0, 0]) {
   // Scale edge mids from image-natural to rendered px (uniform coverScale)
   const mids = edgeMids.map(m => m * coverScale);
   screenEl.style.clipPath = buildClipPath(w, h, mids);
+
+  // Expose inverse mapping: viewport clientX/Y → #win98-desktop local px.
+  // H maps src (screen-content local) → dst (container-relative px).
+  // H_inv maps container-relative → screen-content local; subtract (E,E) for desktop local.
+  const H_inv = computeHomography(dst, src);
+  window._viewportToDesktop = (clientX, clientY) => {
+    const cx = clientX - rect.left;
+    const cy = clientY - rect.top;
+    const p  = mat3multV(H_inv, [cx, cy, 1]);
+    return [(p[0] / p[2]) - E, (p[1] / p[2]) - E];
+  };
 }
 
 /** ResizeObserver watches #scene-closeup and re-applies the transform.
