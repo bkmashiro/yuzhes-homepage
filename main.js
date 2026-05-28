@@ -39,14 +39,14 @@ const speechBubble  = document.getElementById('speech-bubble');
 let inCloseup = false;
 
 /* ─── Zoom-in transition ─── */
+// Where the monitor screen sits in the wide photo (% of image).
+// Used as the zoom-in transform-origin so the animation always flies into the screen.
+const ZOOM_TARGET = { x: 50, y: 45 }; // tweak if monitor is off-centre
+
 function zoomIntoScreen(e) {
   if (inCloseup) return;
 
-  const rect = sceneWide.getBoundingClientRect();
-  const cx = (e.clientX - rect.left) / rect.width;
-  const cy = (e.clientY - rect.top)  / rect.height;
-
-  wideImg.style.transformOrigin = `${cx * 100}% ${cy * 100}%`;
+  wideImg.style.transformOrigin = `${ZOOM_TARGET.x}% ${ZOOM_TARGET.y}%`;
   wideImg.style.transition = 'transform 0.9s cubic-bezier(0.4,0,0.2,1), opacity 0.3s ease 0.7s';
   wideImg.style.transform = 'scale(4)';
   wideImg.style.opacity = '0';
