@@ -129,10 +129,19 @@ function applyScreenTransform(corners, imgW, imgH, edgeMids = [0, 0, 0, 0]) {
   const screenEl  = document.getElementById('screen-content');
   const desktop   = document.getElementById('win98-desktop');
 
-  const rect   = container.getBoundingClientRect();
-  const scaleX = rect.width  / imgW;
-  const scaleY = rect.height / imgH;
-  const dst    = corners.map(([x, y]) => [x * scaleX, y * scaleY]);
+  const rect = container.getBoundingClientRect();
+
+  // object-fit: cover uses a UNIFORM scale = max(containerW/imgW, containerH/imgH),
+  // then centres the image. Using separate scaleX/scaleY is wrong and breaks on resize.
+  const coverScale = Math.max(rect.width / imgW, rect.height / imgH);
+  const offX = (rect.width  - imgW * coverScale) / 2;
+  const offY = (rect.height - imgH * coverScale) / 2;
+
+  // Convert image-natural px → container-relative rendered px
+  const dst = corners.map(([x, y]) => [
+    x * coverScale + offX,
+    y * coverScale + offY,
+  ]);
 
   // Screen dimensions in rendered px
   const w = Math.hypot(dst[1][0]-dst[0][0], dst[1][1]-dst[0][1]);
@@ -162,12 +171,12 @@ function applyScreenTransform(corners, imgW, imgH, edgeMids = [0, 0, 0, 0]) {
     desktop.style.height = `${h}px`;
   }
 
-  // Scale mids from image-natural to rendered px
+  // Scale mids from image-natural to rendered px (uniform coverScale)
   const mids = [
-    edgeMids[0] * scaleY,
-    edgeMids[1] * scaleX,
-    edgeMids[2] * scaleY,
-    edgeMids[3] * scaleX,
+    edgeMids[0] * coverScale,
+    edgeMids[1] * coverScale,
+    edgeMids[2] * coverScale,
+    edgeMids[3] * coverScale,
   ];
   screenEl.style.clipPath = buildClipPath(w, h, mids);
 }
