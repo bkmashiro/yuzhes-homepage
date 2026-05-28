@@ -376,6 +376,79 @@ html, body {
   opacity: 1;
 }
 
+/* ─── Minimize / restore animation ─── */
+.win98-window.minimizing {
+  transition: transform 200ms ease-in, opacity 200ms ease-in;
+  transform: scale(0.1) translateY(200px);
+  opacity: 0;
+  pointer-events: none;
+}
+.win98-window.restoring {
+  transition: transform 200ms ease-out, opacity 200ms ease-out;
+  transform: scale(1) translateY(0);
+  opacity: 1;
+}
+.win98-window.minimized {
+  display: none;
+}
+
+/* ─── Right-click context menu ─── */
+.context-menu {
+  position: absolute;
+  background: #c0c0c0;
+  border: 2px solid;
+  border-color: #fff #808080 #808080 #fff;
+  z-index: 200;
+  padding: 2px 0;
+  min-width: 160px;
+  box-shadow: 2px 2px 0 rgba(0,0,0,0.3);
+  user-select: none;
+}
+.context-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 24px 4px 20px;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.context-menu-item:hover {
+  background: #000080;
+  color: #fff;
+}
+.context-menu-arrow {
+  font-size: 8px;
+  margin-left: 12px;
+}
+.context-menu-separator {
+  height: 1px;
+  background: #808080;
+  margin: 3px 2px;
+  box-shadow: 0 1px 0 #fff;
+}
+
+/* ─── CRT scan line effect ─── */
+#crt-scan {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 999;
+  overflow: hidden;
+}
+#crt-scan .scan-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 40px;
+  background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.06) 50%, transparent);
+  animation: crt-scan 6s linear infinite;
+}
+@keyframes crt-scan {
+  0%   { top: -40px; }
+  100% { top: 100%; }
+}
+
 /* ─── Calibration panel ─── */
 #cal-panel {
   position: fixed;

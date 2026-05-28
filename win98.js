@@ -100,12 +100,8 @@ function openWindow(id, title, icon, bodyHTML, opts = {}) {
 
   // Close button
   win.querySelector('.window-btn.close').onclick = () => closeWindow(id);
-  // Minimize (just hide to taskbar for now)
-  win.querySelector('.window-btn[title="Minimize"]').onclick = () => {
-    win.style.display = 'none';
-    const tb = document.getElementById(`tb-${id}`);
-    if (tb) tb.classList.remove('active');
-  };
+  // Minimize with animation
+  win.querySelector('.window-btn[title="Minimize"]').onclick = () => minimizeWindow(id);
 
   desktop.appendChild(win);
   makeDraggable(win, win.querySelector('.window-titlebar'));
@@ -115,6 +111,44 @@ function openWindow(id, title, icon, bodyHTML, opts = {}) {
 
   // Taskbar button
   addTaskbarBtn(id, title, icon, win);
+}
+
+function minimizeWindow(id) {
+  const win = document.getElementById(`win-${id}`);
+  if (!win) return;
+  win.classList.add('minimizing');
+  const tb = document.getElementById(`tb-${id}`);
+  if (tb) tb.classList.remove('active');
+  // After transition ends, hide the window
+  const onEnd = () => {
+    win.removeEventListener('transitionend', onEnd);
+    win.classList.remove('minimizing');
+    win.classList.add('minimized');
+    win.style.display = 'none';
+  };
+  win.addEventListener('transitionend', onEnd);
+}
+
+function restoreWindow(id) {
+  const win = document.getElementById(`win-${id}`);
+  if (!win) return;
+  win.classList.remove('minimized');
+  // Start at the shrunken state
+  win.style.display = 'flex';
+  win.style.transform = 'scale(0.1) translateY(200px)';
+  win.style.opacity = '0';
+  // Force reflow so browser registers the start state
+  void win.offsetHeight;
+  // Animate to normal
+  win.classList.add('restoring');
+  win.style.transform = '';
+  win.style.opacity = '';
+  bringToFront(id);
+  const onEnd = () => {
+    win.removeEventListener('transitionend', onEnd);
+    win.classList.remove('restoring');
+  };
+  win.addEventListener('transitionend', onEnd);
 }
 
 function closeWindow(id) {
@@ -131,12 +165,10 @@ function addTaskbarBtn(id, title, icon, win) {
   btn.id = `tb-${id}`;
   btn.innerHTML = `<img src="${icon}" style="width:14px;height:14px;image-rendering:pixelated"> ${title}`;
   btn.onclick = () => {
-    if (win.style.display === 'none') {
-      win.style.display = 'flex';
-      bringToFront(id);
+    if (win.classList.contains('minimized') || win.style.display === 'none') {
+      restoreWindow(id);
     } else if (document.getElementById(`win-${id}`)?.classList.contains('focused')) {
-      win.style.display = 'none';
-      btn.classList.remove('active');
+      minimizeWindow(id);
     } else {
       bringToFront(id);
     }
@@ -296,9 +328,145 @@ function initDesktopIcons() {
 
 /* ─── Start-logo set via inline SVG data URI ─── */
 
+/* ─── Right-click context menus ─── */
+let activeContextMenu = null;
+
+function dismissContextMenu() {
+  if (activeContextMenu) {
+    activeContextMenu.remove();
+    activeContextMenu = null;
+  }
+}
+
+function showContextMenu(x, y, items) {
+  dismissContextMenu();
+  const menu = document.createElement('div');
+  menu.className = 'context-menu';
+  items.forEach(item => {
+    if (item === '---') {
+      const sep = document.createElement('div');
+      sep.className = 'context-menu-separator';
+      menu.appendChild(sep);
+    } else {
+      const row = document.createElement('div');
+      row.className = 'context-menu-item';
+      row.textContent = item.label;
+      if (item.sub) {
+        const arrow = document.createElement('span');
+        arrow.className = 'context-menu-arrow';
+        arrow.textContent = '\u25B6';
+        row.appendChild(arrow);
+      }
+      if (item.action) {
+        row.addEventListener('click', e => {
+          e.stopPropagation();
+          dismissContextMenu();
+          item.action();
+        });
+      } else {
+        row.addEventListener('click', e => {
+          e.stopPropagation();
+          dismissContextMenu();
+        });
+      }
+      menu.appendChild(row);
+    }
+  });
+  const desktop = document.getElementById('win98-desktop');
+  desktop.appendChild(menu);
+  // Position, clamped to viewport
+  const dRect = desktop.getBoundingClientRect();
+  let left = x - dRect.left;
+  let top = y - dRect.top;
+  // Temporarily show to measure
+  menu.style.left = `${left}px`;
+  menu.style.top = `${top}px`;
+  const mw = menu.offsetWidth;
+  const mh = menu.offsetHeight;
+  if (left + mw > desktop.clientWidth) left = desktop.clientWidth - mw;
+  if (top + mh > desktop.clientHeight - 28) top = desktop.clientHeight - 28 - mh;
+  if (left < 0) left = 0;
+  if (top < 0) top = 0;
+  menu.style.left = `${left}px`;
+  menu.style.top = `${top}px`;
+  activeContextMenu = menu;
+}
+
+function initContextMenus() {
+  const desktop = document.getElementById('win98-desktop');
+
+  // Dismiss on any click
+  document.addEventListener('click', dismissContextMenu);
+
+  // Desktop right-click
+  desktop.addEventListener('contextmenu', e => {
+    // Don't show on inputs or text areas
+    if (e.target.closest('input, textarea, a, .window-body')) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    const clickedIcon = e.target.closest('.desktop-icon');
+    if (clickedIcon) {
+      // Icon context menu
+      // Find which icon definition this is
+      const iconDefs = DESKTOP_ICONS;
+      const allIcons = Array.from(document.querySelectorAll('#desktop-icons .desktop-icon'));
+      const idx = allIcons.indexOf(clickedIcon);
+      const def = iconDefs[idx];
+      showContextMenu(e.clientX, e.clientY, [
+        { label: 'Open', action: def ? def.onOpen : null },
+        '---',
+        { label: 'Send To', sub: true },
+        '---',
+        { label: 'Delete' },
+        { label: 'Rename' },
+        '---',
+        { label: 'Properties' },
+      ]);
+    } else {
+      // Desktop background context menu
+      showContextMenu(e.clientX, e.clientY, [
+        { label: 'Arrange Icons', sub: true },
+        { label: 'Refresh' },
+        '---',
+        { label: 'New', sub: true },
+        '---',
+        {
+          label: 'Properties',
+          action: () => {
+            openWindow('display-props', 'Display Properties', ICONS.myComputer, `
+              <div style="text-align:center;padding:20px">
+                <p style="font-size:14px;margin-bottom:8px"><b>Display Properties</b></p>
+                <div class="inset-panel" style="padding:16px;margin-top:8px">
+                  <p>This computer is running at a resolution of <b>640x480</b> with <b>256 colors</b>.</p>
+                  <p style="margin-top:8px;color:#808080;font-size:11px">Windows 98 — It's a great day to browse the web!</p>
+                </div>
+              </div>
+            `, { width: 300, height: 200 });
+          },
+        },
+      ]);
+    }
+  });
+}
+
+/* ─── CRT scan line effect ─── */
+function initCRTScan() {
+  const desktop = document.getElementById('win98-desktop');
+  if (!desktop) return;
+  const scanContainer = document.createElement('div');
+  scanContainer.id = 'crt-scan';
+  const scanLine = document.createElement('div');
+  scanLine.className = 'scan-line';
+  scanContainer.appendChild(scanLine);
+  desktop.appendChild(scanContainer);
+}
+
 /* ─── Init ─── */
 function initWin98() {
   initDesktopIcons();
   initStartMenu();
   initClock();
+  initContextMenus();
+  initCRTScan();
 }
