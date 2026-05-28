@@ -633,6 +633,15 @@ html, body {
   margin: 8px auto;
 }
 
+/* ─── Boot screen ─── */
+#boot-screen {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  z-index: 99999;
+  overflow: hidden;
+}
+
 /* ─── Calibration panel ─── */
 #cal-panel {
   position: fixed;

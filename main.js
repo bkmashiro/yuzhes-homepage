@@ -153,8 +153,117 @@ if (closeupImg.complete && closeupImg.naturalWidth) {
   onCloseupReady();
 }
 
+/* ─── Boot sequence (first visit only) ─── */
+function runBootSequence(onDone) {
+  if (localStorage.getItem('win98-booted') || window.location.search.includes('noboot')) {
+    onDone(); return;
+  }
+  localStorage.setItem('win98-booted', '1');
+
+  const boot = document.createElement('div');
+  boot.id = 'boot-screen';
+  document.body.appendChild(boot);
+
+  // Phase 1: BIOS POST
+  boot.innerHTML = `
+    <div id="boot-bios" style="font-family:'Courier New',monospace;font-size:13px;color:#c0c0c0;padding:20px;line-height:1.6">
+      Award Modular BIOS v4.51PG, An Energy Star Ally<br>
+      Copyright (C) 1984-98, Award Software, Inc.<br><br>
+      Pentium II-450 MHz Processor<br><br>
+      Memory Test: <span id="boot-ram">0</span>K OK<br><br>
+      <span id="boot-msg"></span>
+    </div>
+  `;
+
+  // RAM count-up
+  const ramEl = document.getElementById('boot-ram');
+  let ramVal = 0;
+  const ramInterval = setInterval(() => {
+    ramVal = Math.min(65536, ramVal + 4096);
+    if (ramEl) ramEl.textContent = ramVal.toLocaleString();
+    if (ramVal >= 65536) clearInterval(ramInterval);
+  }, 60);
+
+  setTimeout(() => {
+    const msg = document.getElementById('boot-msg');
+    if (msg) msg.textContent = 'Press DEL to enter SETUP';
+  }, 800);
+
+  // Phase 2: C:\> WIN
+  setTimeout(() => {
+    boot.innerHTML = `<div style="font-family:'Courier New',monospace;font-size:13px;color:#c0c0c0;padding:20px"><span id="boot-cmd">C:\\&gt;</span></div>`;
+    const cmdEl = document.getElementById('boot-cmd');
+    const text = 'C:\\> WIN';
+    let i = 4;
+    const typeInterval = setInterval(() => {
+      if (cmdEl) cmdEl.textContent = text.slice(0, ++i);
+      if (i >= text.length) clearInterval(typeInterval);
+    }, 50);
+  }, 1600);
+
+  // Phase 3: Win98 logo screen
+  setTimeout(() => {
+    boot.innerHTML = `
+      <div style="background:#3a6ea5;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;box-sizing:border-box">
+        <div style="font-size:32px;font-weight:bold;font-family:Tahoma,sans-serif;color:#fff;letter-spacing:2px;text-shadow:1px 1px 3px rgba(0,0,0,0.4)">Microsoft Windows 98</div>
+        <div style="font-size:14px;color:#c8d8e8;margin-top:14px;font-family:Tahoma,sans-serif">Starting Windows 98...</div>
+        <div style="width:320px;height:10px;background:#1a3f6f;margin-top:20px;border:1px solid #5a8ec0">
+          <div id="boot-prog" style="height:100%;width:0%;background:#6a9fd8;transition:width 1.8s linear"></div>
+        </div>
+      </div>
+    `;
+    // Play startup chime
+    playStartupChime();
+    // Trigger progress bar
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        const prog = document.getElementById('boot-prog');
+        if (prog) prog.style.width = '100%';
+      }, 100);
+    });
+  }, 2400);
+
+  // Phase 4: Fade out, reveal page
+  setTimeout(() => {
+    boot.style.transition = 'opacity 0.7s ease';
+    boot.style.opacity = '0';
+    setTimeout(() => { boot.remove(); onDone(); }, 700);
+  }, 4400);
+}
+
+function playStartupChime() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const notes = [
+      { freq: 523.25, start: 0,    dur: 1.2, vol: 0.12 },
+      { freq: 659.25, start: 0.2,  dur: 1.0, vol: 0.10 },
+      { freq: 783.99, start: 0.4,  dur: 0.9, vol: 0.09 },
+      { freq: 1046.5, start: 0.65, dur: 0.8, vol: 0.08 },
+      { freq: 1318.5, start: 0.85, dur: 0.7, vol: 0.06 },
+    ];
+    notes.forEach(({ freq, start, dur, vol }) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, ctx.currentTime + start);
+      gain.gain.linearRampToValueAtTime(vol, ctx.currentTime + start + 0.12);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + dur);
+      osc.start(ctx.currentTime + start);
+      osc.stop(ctx.currentTime + start + dur + 0.1);
+    });
+  } catch(e) {}
+}
+
 /* ─── Init Win98 desktop ─── */
 initWin98();
+
+// Run boot sequence, then proceed with normal init
+runBootSequence(() => {
+  // Add active class to scene-wide to show it after boot
+  sceneWide.classList.add('active');
+});
 
 /* ─── Character scene-graph positioning ─────────────────────────────────
  * The character is positioned in the same coordinate space as the screen
