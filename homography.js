@@ -86,18 +86,19 @@ function toCSSMatrix3d(src, dst) {
  */
 function buildClipPath(w, h, mids) {
   const [mTop, mRight, mBottom, mLeft] = mids;
-  // Quadratic bezier control points sit at edge midpoints offset
-  // perpendicular to each edge:
-  //   top    edge → control point moves in -y (up = outward)
-  //   right  edge → control point moves in +x (right = outward)
-  //   bottom edge → control point moves in +y (down = outward)
-  //   left   edge → control point moves in -x (left = outward)
+  // Positive values bow the edge INWARD (toward the screen centre).
+  // This is correct for CRT screens whose edges curve inward.
+  // Control point is pushed toward the centre by `m` pixels:
+  //   top    → control point at (w/2,  mTop)     (positive y = down = inward)
+  //   right  → control point at (w-mRight, h/2)  (subtract = leftward = inward)
+  //   bottom → control point at (w/2, h-mBottom) (subtract = upward = inward)
+  //   left   → control point at (mLeft, h/2)     (positive x = rightward = inward)
   const d = [
     `M 0 0`,
-    `Q ${w / 2} ${-mTop}   ${w} 0`,      // top
-    `Q ${w + mRight} ${h / 2}   ${w} ${h}`,    // right
-    `Q ${w / 2} ${h + mBottom} 0 ${h}`,       // bottom
-    `Q ${-mLeft} ${h / 2}   0 0`,             // left
+    `Q ${w / 2} ${mTop}       ${w} 0`,
+    `Q ${w - mRight} ${h / 2} ${w} ${h}`,
+    `Q ${w / 2} ${h - mBottom} 0 ${h}`,
+    `Q ${mLeft} ${h / 2}      0 0`,
     `Z`,
   ].join(' ');
   return `path('${d}')`;

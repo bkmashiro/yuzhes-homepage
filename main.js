@@ -20,14 +20,13 @@ const SCREEN_CORNERS = [
 ];
 
 // Edge midpoint offsets in image-natural px.
-// Positive = bow outward away from screen centre.
-// CRT glass is convex → edges bow slightly outward → positive values.
+// Positive = bow INWARD (toward screen centre) — correct for CRT curved glass.
 // Set to 0 for straight edges (pure homography quad).
 const EDGE_MIDS = [
-  0,   // top    edge midpoint offset
-  0,   // right  edge midpoint offset
-  0,   // bottom edge midpoint offset
-  0,   // left   edge midpoint offset
+  0,   // top    edge
+  0,   // right  edge
+  0,   // bottom edge
+  0,   // left   edge
 ];
 
 // Natural resolution of assets/closeup.jpg
@@ -298,10 +297,11 @@ if (window.location.search.includes('calibrate')) {
       const px = -dy/len, py = dx/len; // perp outward unit vec in screen px
 
       const onMove = e => {
+        // px/py point outward; dragging inward = negative dot product.
+        // We want inward drag → positive mids, so negate.
         const drag = (e.clientX-startX)*px + (e.clientY-startY)*py;
-        // Convert screen-px drag → image-natural px
         const imgScale = Math.hypot(sX, sY) / Math.SQRT2;
-        mids[i] = Math.round(startMid + drag / imgScale);
+        mids[i] = Math.round(startMid - drag / imgScale);
         refresh();
       };
       const onUp = () => {
