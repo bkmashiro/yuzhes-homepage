@@ -19,6 +19,17 @@ const SCREEN_CORNERS = [
   [338,  869],  // bottom-left
 ];
 
+// Edge midpoint offsets in image-natural px.
+// Positive = bow outward away from screen centre.
+// CRT glass is convex → edges bow slightly outward → positive values.
+// Set to 0 for straight edges (pure homography quad).
+const EDGE_MIDS = [
+  0,   // top    edge midpoint offset
+  0,   // right  edge midpoint offset
+  0,   // bottom edge midpoint offset
+  0,   // left   edge midpoint offset
+];
+
 // Natural resolution of assets/closeup.jpg
 // (read from image once loaded)
 let CLOSEUP_IMG_SIZE = [1312, 1199]; // placeholder — updated on load
@@ -106,13 +117,13 @@ closeupImg.addEventListener('click', zoomOut);
 /* ─── Init screen overlay once closeup image loads ─── */
 closeupImg.addEventListener('load', () => {
   CLOSEUP_IMG_SIZE = [closeupImg.naturalWidth, closeupImg.naturalHeight];
-  initScreenTransform(SCREEN_CORNERS, ...CLOSEUP_IMG_SIZE);
+  initScreenTransform(SCREEN_CORNERS, ...CLOSEUP_IMG_SIZE, EDGE_MIDS);
 });
 
 // If already cached / loaded synchronously
 if (closeupImg.complete && closeupImg.naturalWidth) {
   CLOSEUP_IMG_SIZE = [closeupImg.naturalWidth, closeupImg.naturalHeight];
-  initScreenTransform(SCREEN_CORNERS, ...CLOSEUP_IMG_SIZE);
+  initScreenTransform(SCREEN_CORNERS, ...CLOSEUP_IMG_SIZE, EDGE_MIDS);
 }
 
 /* ─── Init Win98 desktop ─── */
@@ -133,8 +144,10 @@ if (window.location.search.includes('calibrate')) {
   sceneCloseup.classList.add('active');
   inCloseup = true;
 
-  // Working copy of corners (in image-natural px)
-  const cal = SCREEN_CORNERS.map(c => [...c]);
+  // Working copies
+  const cal  = SCREEN_CORNERS.map(c => [...c]);
+  const mids = [...EDGE_MIDS]; // [top, right, bottom, left] in image-natural px
+
   const LABELS = ['TL', 'TR', 'BR', 'BL'];
   const COLORS  = ['#ff4444','#44aaff','#44ff88','#ffcc44'];
 
@@ -149,22 +162,28 @@ if (window.location.search.includes('calibrate')) {
   `;
   document.body.appendChild(panel);
 
-  function updatePanel() {
-    panel.innerHTML =
-      `<b style="color:#ffd700">⚙ Calibration mode</b><br>` +
-      `Drag handles to align. Copy to main.js:<br><br>` +
-      `<span style="color:#88ffcc">const SCREEN_CORNERS = [<br>` +
-      cal.map((c,i) => `&nbsp;&nbsp;[${c[0]}, ${c[1]}], <span style="color:#666">// ${LABELS[i]}</span>`).join('<br>') +
-      `<br>];</span>`;
+  function refresh() {
+    initScreenTransform(cal, closeupImg.naturalWidth, closeupImg.naturalHeight, mids);
+    updatePanel();
+    repositionMidHandles();
   }
 
-  // Create draggable handles positioned over the image
-  const handles = cal.map((corner, i) => {
+  function updatePanel() {
+    panel.innerHTML =
+      `<b style="color:#ffd700">⚙ Calibration</b>  <span style="color:#888;font-size:10px">●corners  ◆edges</span><br><br>` +
+      `<span style="color:#88ffcc">const SCREEN_CORNERS = [<br>` +
+      cal.map((c,i) => `&nbsp;&nbsp;[${c[0]}, ${c[1]}], <span style="color:#555">// ${LABELS[i]}</span>`).join('<br>') +
+      `<br>];<br><br>const EDGE_MIDS = [${mids.map(v=>Math.round(v)).join(', ')}];<br>` +
+      `<span style="color:#888">// top, right, bottom, left</span></span>`;
+  }
+
+  /* ── Corner handles (circles) ── */
+  cal.forEach((corner, i) => {
     const h = document.createElement('div');
     h.style.cssText = `
       position:fixed; width:18px; height:18px; margin:-9px;
       border-radius:50%; border:3px solid ${COLORS[i]};
-      background:rgba(0,0,0,0.5); cursor:grab; z-index:10000;
+      background:rgba(0,0,0,0.55); cursor:grab; z-index:10000;
       box-shadow:0 0 6px ${COLORS[i]};
       display:flex; align-items:center; justify-content:center;
       font:bold 8px sans-serif; color:${COLORS[i]};
@@ -173,42 +192,130 @@ if (window.location.search.includes('calibrate')) {
     document.body.appendChild(h);
 
     function reposition() {
-      const rect  = closeupImg.getBoundingClientRect();
-      const scaleX = rect.width  / closeupImg.naturalWidth;
-      const scaleY = rect.height / closeupImg.naturalHeight;
-      h.style.left = `${rect.left + cal[i][0] * scaleX}px`;
-      h.style.top  = `${rect.top  + cal[i][1] * scaleY}px`;
+      const r = closeupImg.getBoundingClientRect();
+      h.style.left = `${r.left + cal[i][0] * (r.width  / closeupImg.naturalWidth)}px`;
+      h.style.top  = `${r.top  + cal[i][1] * (r.height / closeupImg.naturalHeight)}px`;
     }
     reposition();
+    window.addEventListener('resize', reposition);
 
-    // Drag
     h.addEventListener('mousedown', e => {
-      e.preventDefault();
-      e.stopPropagation();
+      e.preventDefault(); e.stopPropagation();
       h.style.cursor = 'grabbing';
-
-      function onMove(e) {
-        const rect   = closeupImg.getBoundingClientRect();
-        const scaleX = closeupImg.naturalWidth  / rect.width;
-        const scaleY = closeupImg.naturalHeight / rect.height;
-        cal[i][0] = Math.round((e.clientX - rect.left) * scaleX);
-        cal[i][1] = Math.round((e.clientY - rect.top)  * scaleY);
+      const onMove = e => {
+        const r = closeupImg.getBoundingClientRect();
+        cal[i][0] = Math.round((e.clientX - r.left) * (closeupImg.naturalWidth  / r.width));
+        cal[i][1] = Math.round((e.clientY - r.top)  * (closeupImg.naturalHeight / r.height));
         reposition();
-        initScreenTransform(cal, closeupImg.naturalWidth, closeupImg.naturalHeight);
-        updatePanel();
-      }
-      function onUp() {
+        refresh();
+      };
+      const onUp = () => {
         h.style.cursor = 'grab';
         document.removeEventListener('mousemove', onMove);
         document.removeEventListener('mouseup', onUp);
-      }
+      };
       document.addEventListener('mousemove', onMove);
       document.addEventListener('mouseup', onUp);
     });
-
-    window.addEventListener('resize', reposition);
-    return { reposition };
   });
+
+  /* ── Edge midpoint handles (diamonds) ── */
+  // Each edge midpoint handle sits at the geometric midpoint of the edge
+  // and can only be dragged perpendicular to that edge.
+  // Dragging changes mids[i] (offset in image-natural px).
+  const EDGE_LABELS  = ['▲T', '▶R', '▼B', '◀L'];
+  const EDGE_COLOR   = '#ff88ff';
+  const midHandleEls = [];
+
+  function getMidHandleScreenPos(i) {
+    // Midpoint of the edge in image-natural coords
+    const r = closeupImg.getBoundingClientRect();
+    const sX = r.width  / closeupImg.naturalWidth;
+    const sY = r.height / closeupImg.naturalHeight;
+    // Edges: 0=top(TL→TR), 1=right(TR→BR), 2=bottom(BR→BL), 3=left(BL→TL)
+    const edgePts = [
+      [cal[0], cal[1]],  // top
+      [cal[1], cal[2]],  // right
+      [cal[2], cal[3]],  // bottom
+      [cal[3], cal[0]],  // left
+    ];
+    const [a, b] = edgePts[i];
+    // Geometric midpoint
+    const mx = (a[0] + b[0]) / 2;
+    const my = (a[1] + b[1]) / 2;
+    // Perpendicular unit vector (inward direction)
+    const dx = b[0] - a[0], dy = b[1] - a[1];
+    const len = Math.hypot(dx, dy) || 1;
+    // Perpendicular outward: rotate 90°
+    // For top: perp is (0,-1); for right: (1,0); etc. But let's compute generically:
+    const px = -dy / len, py = dx / len;
+    // Offset in image-natural px → screen px
+    const offsetPx = mids[i] * Math.hypot(sX, sY) / Math.SQRT2;
+    return [
+      r.left + mx * sX + px * offsetPx,
+      r.top  + my * sY + py * offsetPx,
+    ];
+  }
+
+  function repositionMidHandles() {
+    midHandleEls.forEach((el, i) => {
+      const [lx, ly] = getMidHandleScreenPos(i);
+      el.style.left = `${lx}px`;
+      el.style.top  = `${ly}px`;
+    });
+  }
+
+  EDGE_LABELS.forEach((label, i) => {
+    const h = document.createElement('div');
+    h.style.cssText = `
+      position:fixed; width:16px; height:16px; margin:-8px;
+      transform:rotate(45deg);
+      border:2px solid ${EDGE_COLOR};
+      background:rgba(0,0,0,0.55); cursor:grab; z-index:10000;
+      box-shadow:0 0 6px ${EDGE_COLOR};
+    `;
+    document.body.appendChild(h);
+    midHandleEls.push(h);
+
+    // Perpendicular drag axis depends on edge
+    h.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      h.style.cursor = 'grabbing';
+      const startMid = mids[i];
+      const startX = e.clientX, startY = e.clientY;
+
+      // Compute perpendicular direction in screen space for this edge
+      const r = closeupImg.getBoundingClientRect();
+      const sX = r.width  / closeupImg.naturalWidth;
+      const sY = r.height / closeupImg.naturalHeight;
+      const edgePts = [
+        [cal[0], cal[1]], [cal[1], cal[2]],
+        [cal[2], cal[3]], [cal[3], cal[0]],
+      ];
+      const [a, b] = edgePts[i];
+      const dx = (b[0]-a[0])*sX, dy = (b[1]-a[1])*sY;
+      const len = Math.hypot(dx, dy) || 1;
+      const px = -dy/len, py = dx/len; // perp outward unit vec in screen px
+
+      const onMove = e => {
+        const drag = (e.clientX-startX)*px + (e.clientY-startY)*py;
+        // Convert screen-px drag → image-natural px
+        const imgScale = Math.hypot(sX, sY) / Math.SQRT2;
+        mids[i] = Math.round(startMid + drag / imgScale);
+        refresh();
+      };
+      const onUp = () => {
+        h.style.cursor = 'grab';
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      };
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+  });
+
+  repositionMidHandles();
+  window.addEventListener('resize', repositionMidHandles);
 
   updatePanel();
 }

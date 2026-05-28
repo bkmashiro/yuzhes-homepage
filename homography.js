@@ -74,15 +74,47 @@ function toCSSMatrix3d(src, dst) {
 }
 
 /**
- * Apply the homography transform to #screen-content.
+ * Build a quadratic-bezier SVG clip-path for the CRT screen shape.
  *
- * @param {number[][]} corners  4×2 array of [x,y] pixel coords in the
- *                              NATURAL size of the closeup image,
- *                              order: top-left, top-right, bottom-right, bottom-left
+ * @param {number}   w       Element width (px)
+ * @param {number}   h       Element height (px)
+ * @param {number[]} mids    [top, right, bottom, left] midpoint offsets in
+ *                           element-local px.  Positive = bow outward from
+ *                           the quad centre (i.e. inward on screen means
+ *                           the edge curves toward the viewer, use negative).
+ *                           CRT screens bow slightly inward → negative values.
+ */
+function buildClipPath(w, h, mids) {
+  const [mTop, mRight, mBottom, mLeft] = mids;
+  // Quadratic bezier control points sit at edge midpoints offset
+  // perpendicular to each edge:
+  //   top    edge → control point moves in -y (up = outward)
+  //   right  edge → control point moves in +x (right = outward)
+  //   bottom edge → control point moves in +y (down = outward)
+  //   left   edge → control point moves in -x (left = outward)
+  const d = [
+    `M 0 0`,
+    `Q ${w / 2} ${-mTop}   ${w} 0`,      // top
+    `Q ${w + mRight} ${h / 2}   ${w} ${h}`,    // right
+    `Q ${w / 2} ${h + mBottom} 0 ${h}`,       // bottom
+    `Q ${-mLeft} ${h / 2}   0 0`,             // left
+    `Z`,
+  ].join(' ');
+  return `path('${d}')`;
+}
+
+/**
+ * Apply the homography + curved clip-path to #screen-content.
+ *
+ * @param {number[][]} corners  4×2 array of [x,y] in closeup image natural px,
+ *                              order: TL, TR, BR, BL
  * @param {number}     imgW     Natural width of closeup image (px)
  * @param {number}     imgH     Natural height of closeup image (px)
+ * @param {number[]}   [edgeMids=[0,0,0,0]]
+ *                              Midpoint offsets [top,right,bottom,left] in
+ *                              image-natural px (positive = bow outward).
  */
-function applyScreenTransform(corners, imgW, imgH) {
+function applyScreenTransform(corners, imgW, imgH, edgeMids = [0, 0, 0, 0]) {
   const container = document.getElementById('scene-closeup');
   const screenEl  = document.getElementById('screen-content');
 
@@ -92,8 +124,7 @@ function applyScreenTransform(corners, imgW, imgH) {
   const scaleY = rect.height / imgH;
   const dst    = corners.map(([x, y]) => [x * scaleX, y * scaleY]);
 
-  // Approximate screen dimensions from the quad
-  // (top edge width × left edge height)
+  // Element dimensions approximated from top edge width × left edge height
   const w = Math.hypot(dst[1][0]-dst[0][0], dst[1][1]-dst[0][1]);
   const h = Math.hypot(dst[3][0]-dst[0][0], dst[3][1]-dst[0][1]);
 
@@ -101,19 +132,27 @@ function applyScreenTransform(corners, imgW, imgH) {
   screenEl.style.height = `${h}px`;
   screenEl.style.transformOrigin = '0 0';
 
-  // Source: the element's own four corners in local space
+  // Homography: map element rect → screen quad
   const src = [[0,0], [w,0], [w,h], [0,h]];
-
   screenEl.style.transform = toCSSMatrix3d(src, dst);
+
+  // Clip-path: scale edge midpoint offsets from image-natural to element space
+  const mids = [
+    edgeMids[0] * scaleY,   // top
+    edgeMids[1] * scaleX,   // right
+    edgeMids[2] * scaleY,   // bottom
+    edgeMids[3] * scaleX,   // left
+  ];
+  screenEl.style.clipPath = buildClipPath(w, h, mids);
 }
 
 // Re-apply on resize
 window.addEventListener('resize', () => {
-  if (window._screenCorners) applyScreenTransform(...window._screenCorners);
+  if (window._screenState) applyScreenTransform(...window._screenState);
 });
 
 /** Public entry point. Call once the closeup scene is active. */
-function initScreenTransform(corners, imgW, imgH) {
-  window._screenCorners = [corners, imgW, imgH];
-  applyScreenTransform(corners, imgW, imgH);
+function initScreenTransform(corners, imgW, imgH, edgeMids = [0, 0, 0, 0]) {
+  window._screenState = [corners, imgW, imgH, edgeMids];
+  applyScreenTransform(corners, imgW, imgH, edgeMids);
 }
