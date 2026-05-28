@@ -61,7 +61,7 @@ html, body {
   /* width/height/transform/clip-path set entirely by homography.js */
   transform-origin: 0 0;
   overflow: visible; /* clip-path handles clipping; visible lets CLIP_EXPAND work */
-  pointer-events: auto;
+  /* pointer-events inherited from .scene / .scene.active — don't override here */
 }
 
 /* ─── Win98 Desktop ─── */
