@@ -643,6 +643,9 @@ function initStartMenu() {
       <div class="start-menu-item" id="sm-calc"><img src="${ICONS.notepad}" alt=""> Calculator</div>
       <div class="start-menu-item" id="sm-snake"><img src="${ICONS.mine}" alt=""> Snake</div>
       <div class="start-menu-item" id="sm-terminal"><img src="${ICONS.myComputer}" alt=""> Command Prompt</div>
+      <div class="start-menu-item" id="sm-defrag">💾 Disk Defragmenter</div>
+      <div class="start-menu-item" id="sm-dlram">🧠 Download More RAM</div>
+      <div class="start-menu-item" id="sm-y2k">📅 Y2K Compliance</div>
       <div class="start-menu-separator"></div>
       <div class="start-menu-item" onclick="window.openShutdownDialog()">
         <img src="${ICONS.winlogo}" alt=""> Shut Down...
@@ -653,6 +656,9 @@ function initStartMenu() {
   menu.querySelector('#sm-calc')?.addEventListener('click', () => { menu.classList.remove('open'); openCalculator(); });
   menu.querySelector('#sm-snake')?.addEventListener('click', () => { menu.classList.remove('open'); openSnake(); });
   menu.querySelector('#sm-terminal')?.addEventListener('click', () => { menu.classList.remove('open'); openTerminal(); });
+  menu.querySelector('#sm-defrag')?.addEventListener('click', () => { menu.classList.remove('open'); openDefrag(); });
+  menu.querySelector('#sm-dlram')?.addEventListener('click', () => { menu.classList.remove('open'); openDownloadRAM(); });
+  menu.querySelector('#sm-y2k')?.addEventListener('click', () => { menu.classList.remove('open'); openY2K(); });
 }
 
 /* ─── Clock ─── */
@@ -1002,6 +1008,7 @@ function initContextMenus() {
         '---',
         { label: 'Format C:\\...', action: openFormatDisk },
         { label: 'Delete System32', action: openDeleteSystem32 },
+        { label: '📎 Summon Clippy', action: spawnClippy },
         '---',
         {
           label: 'Properties',
@@ -1545,6 +1552,201 @@ function openMinesweeper() {
   saySpeech("Good luck \uD83D\uDCA3", 3000, true);
 }
 
+/* ─── Disk Defragmenter ─── */
+function openDefrag() {
+  const COLS=24, ROWS=10;
+  const cellsHTML = Array.from({length:COLS*ROWS}, (_,i) => {
+    const type = Math.random()<0.05?'bad':Math.random()<0.6?'used':'free';
+    const colors = {free:'#fff',used:'#000080',bad:'#800000',optimized:'#008000'};
+    return `<div class="defrag-cell" data-type="${type}" style="width:16px;height:12px;background:${colors[type]};border:1px solid #808080;display:inline-block"></div>`;
+  }).join('');
+
+  openWindow('defrag', 'Disk Defragmenter', ICONS.myComputer, `
+    <div style="padding:8px;font-size:12px">
+      <p>Drive C: &nbsp; <b>Analyzing...</b></p>
+      <div style="margin:8px 0;line-height:0;background:#c0c0c0;border:1px inset #808080;padding:4px">${cellsHTML}</div>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:6px">
+        <div style="width:12px;height:10px;background:#000080;border:1px solid #808080;display:inline-block"></div><span>Used</span>
+        <div style="width:12px;height:10px;background:#fff;border:1px solid #808080;display:inline-block"></div><span>Free</span>
+        <div style="width:12px;height:10px;background:#008000;border:1px solid #808080;display:inline-block"></div><span>Optimized</span>
+        <div style="width:12px;height:10px;background:#800000;border:1px solid #808080;display:inline-block"></div><span>Bad</span>
+      </div>
+      <div style="margin-top:8px;display:flex;gap:6px">
+        <button id="defrag-btn" style="font-size:11px;font-family:inherit;padding:3px 12px;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;cursor:pointer">Defragment</button>
+        <button id="defrag-stop" style="font-size:11px;font-family:inherit;padding:3px 12px;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;cursor:pointer">Stop</button>
+      </div>
+      <div style="margin-top:8px;background:#fff;border:1px inset #808080;height:14px;position:relative">
+        <div id="defrag-bar" style="height:100%;width:0%;background:#000080"></div>
+      </div>
+      <p id="defrag-status" style="font-size:11px;margin-top:4px;color:#808080">Click Defragment to begin</p>
+    </div>
+  `, { width: 420, height: 280 });
+
+  let defragRunning = false, defragTimer = null, pct = 0;
+  const bar = document.getElementById('defrag-bar');
+  const status = document.getElementById('defrag-status');
+  const cells = Array.from(document.querySelectorAll('.defrag-cell'));
+
+  document.getElementById('defrag-btn')?.addEventListener('click', () => {
+    if (defragRunning) return;
+    defragRunning = true; pct = 0;
+    if (status) status.textContent = 'Defragmenting... please wait';
+
+    let usedCells = cells.filter(c=>c.dataset.type==='used');
+    let i=0;
+    defragTimer = setInterval(() => {
+      if (!document.getElementById('win-defrag')) { clearInterval(defragTimer); return; }
+      for (let k=0; k<3 && i<usedCells.length; k++, i++) {
+        usedCells[i].style.background='#008000';
+        usedCells[i].dataset.type='optimized';
+      }
+      pct = Math.min(99, (i/Math.max(usedCells.length,1))*100);
+      if (bar) bar.style.width=`${pct}%`;
+
+      if (i >= usedCells.length) {
+        clearInterval(defragTimer); defragRunning=false;
+        if (bar) bar.style.width='100%';
+        if (status) status.textContent='Defragmentation complete... mostly. 🎉';
+      }
+    }, 80);
+  });
+
+  document.getElementById('defrag-stop')?.addEventListener('click', () => {
+    clearInterval(defragTimer); defragRunning=false;
+    if (status) status.textContent='Stopped. Partial defrag saved.';
+  });
+}
+
+/* ─── Download More RAM ─── */
+let _audioCtx = null;
+function getAudioCtx() {
+  if (!_audioCtx) try { _audioCtx = new (window.AudioContext||window.webkitAudioContext)(); } catch(e) {}
+  return _audioCtx;
+}
+
+function playDialup() {
+  try {
+    const ctx = getAudioCtx(); if (!ctx) return;
+    const tones = [1000,2200,1600,800,2400,1100,1800,900,2600];
+    let t = ctx.currentTime;
+    tones.forEach(freq => {
+      const osc=ctx.createOscillator(), gain=ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value=freq;
+      gain.gain.setValueAtTime(0.06,t); gain.gain.exponentialRampToValueAtTime(0.001,t+0.18);
+      osc.start(t); osc.stop(t+0.18); t+=0.14;
+    });
+  } catch(e) {}
+}
+
+function openDownloadRAM() {
+  openWindow('dl-ram', 'Download More RAM', ICONS.internet, `
+    <div style="padding:16px;font-size:12px">
+      <p style="margin-bottom:8px">🧠 Connecting to RAM servers...</p>
+      <div style="background:#fff;border:1px inset #808080;height:18px;position:relative">
+        <div id="ram-bar" style="height:100%;width:0%;background:#000080;transition:width 0.3s linear"></div>
+      </div>
+      <p id="ram-pct" style="margin-top:4px;font-family:monospace">0 MB / 64 MB</p>
+      <p id="ram-status" style="margin-top:8px;color:#808080">Establishing connection...</p>
+    </div>
+  `, { width: 300, height: 170 });
+
+  playDialup();
+  let dlTimer = null, soundTimer = null;
+  let mb = 0;
+  const bar = document.getElementById('ram-bar');
+  const pctEl = document.getElementById('ram-pct');
+  const statusEl = document.getElementById('ram-status');
+  const msgs = ['Downloading free memory...','Compressing RAM packets...','Bypassing memory firewall...','Injecting RAM cells...','Almost there!'];
+  let msgIdx = 0;
+
+  soundTimer = setInterval(() => { if (document.getElementById('win-dl-ram')) playDialup(); else clearInterval(soundTimer); }, 3000);
+
+  dlTimer = setInterval(() => {
+    if (!document.getElementById('win-dl-ram')) { clearInterval(dlTimer); clearInterval(soundTimer); return; }
+    mb = Math.min(64, mb + (Math.random()*3));
+    if (bar) bar.style.width=`${(mb/64)*100}%`;
+    if (pctEl) pctEl.textContent=`${Math.floor(mb)} MB / 64 MB`;
+    if (statusEl && Math.random()>0.7) statusEl.textContent=msgs[msgIdx++%msgs.length];
+    if (mb >= 64) {
+      clearInterval(dlTimer); clearInterval(soundTimer);
+      if (bar) bar.style.background='#008000';
+      if (statusEl) statusEl.textContent='✅ Download complete! You now have 128MB of RAM.';
+      if (pctEl) pctEl.textContent='64 MB / 64 MB';
+      saySpeech('RAM downloaded! 🧠✨ Speed boost activated!', 4000, true);
+    }
+  }, 250);
+}
+
+/* ─── Clippy ─── */
+function spawnClippy() {
+  if (document.getElementById('clippy-popup')) return;
+  const desktop = document.getElementById('win98-desktop');
+
+  const popup = document.createElement('div');
+  popup.id = 'clippy-popup';
+  popup.style.cssText = `
+    position:absolute; bottom:36px; right:10px; z-index:5000;
+    background:#ffffcc; border:2px solid #888; border-radius:8px;
+    padding:10px 12px; font-size:11px; max-width:180px;
+    box-shadow:2px 2px 4px rgba(0,0,0,0.3); font-family:inherit;
+  `;
+  popup.innerHTML = `
+    <div style="font-size:20px;text-align:center;margin-bottom:6px">📎</div>
+    <p style="margin-bottom:8px;line-height:1.4">It looks like you're browsing a personal homepage. Would you like help with that?</p>
+    <div style="display:flex;gap:6px;justify-content:flex-end">
+      <button id="clippy-yes" style="font-size:11px;font-family:inherit;padding:2px 10px;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;cursor:pointer">Yes</button>
+      <button id="clippy-no" style="font-size:11px;font-family:inherit;padding:2px 10px;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;cursor:pointer">No</button>
+    </div>
+  `;
+  desktop.appendChild(popup);
+
+  const dismiss = () => {
+    popup.remove();
+    saySpeech("That's what I thought 😏", 3000, true);
+  };
+  popup.querySelector('#clippy-yes')?.addEventListener('click', dismiss);
+  popup.querySelector('#clippy-no')?.addEventListener('click', dismiss);
+
+  saySpeech('Oh! Clippy appeared! 📎', 2500, true);
+}
+
+/* ─── Y2K Compliance Checker ─── */
+function openY2K() {
+  openWindow('y2k', 'Y2K Compliance Checker', ICONS.myComputer, `
+    <div style="padding:16px;font-size:12px">
+      <p style="margin-bottom:8px">🔍 Scanning system for Y2K compliance...</p>
+      <div style="background:#fff;border:1px inset #808080;height:14px">
+        <div id="y2k-bar" style="height:100%;width:0%;background:#000080;transition:width 2s linear"></div>
+      </div>
+      <div id="y2k-result" style="margin-top:12px"></div>
+    </div>
+  `, { width: 340, height: 180 });
+
+  requestAnimationFrame(() => {
+    const bar = document.getElementById('y2k-bar');
+    const result = document.getElementById('y2k-result');
+    if (bar) bar.style.width = '100%';
+    setTimeout(() => {
+      if (!result) return;
+      const y2k = new Date(2000,0,1);
+      const now = new Date();
+      const diff = now - y2k;
+      const days = Math.floor(diff/86400000);
+      const yrs = Math.floor(days/365);
+      const remDays = days % 365;
+      const hrs = Math.floor((diff%86400000)/3600000);
+      result.innerHTML = `
+        <p>✅ <b>System is Y2K Compliant!</b></p>
+        <p style="margin-top:8px;color:#444">You have survived:</p>
+        <p style="font-family:monospace;font-size:13px;color:#000080;margin-top:4px">${yrs} years, ${remDays} days, ${hrs} hours</p>
+        <p style="margin-top:4px">since January 1, 2000 00:00:00</p>
+        <p style="margin-top:8px;color:#808080;font-size:11px">No action required. Miraculously still operational.</p>
+      `;
+    }, 2100);
+  });
+}
+
 /* ─── Calculator ─── */
 function openCalculator() {
   const bodyHTML = `
@@ -1832,4 +2034,7 @@ export function initWin98() {
   window.openCalculator = openCalculator;
   window.openSnake = openSnake;
   window.openTerminal = openTerminal;
+  window.openDefrag = openDefrag;
+  window.openDownloadRAM = openDownloadRAM;
+  window.openY2K = openY2K;
 }
