@@ -112,45 +112,98 @@ if (closeupImg.complete && closeupImg.naturalWidth) {
 /* ─── Init Win98 desktop ─── */
 initWin98();
 
-/* ─── Character transparent-padding compensation ────────────────────────
- * The character image has transparent padding around the visible body.
- * We scan for the rightmost and bottommost opaque pixels, then compute
- * pixel offsets to push the transparent area off-screen so the visible
- * body stays anchored to the bottom-right of the viewport.
+/* ─── Character scene-graph positioning ─────────────────────────────────
+ * The character is positioned in the same coordinate space as the screen
+ * overlay: natural pixels of closeup.png. This way both elements move
+ * and scale consistently when the viewport resizes.
  *
- * Math:
- *   renderedH = 45vh (in px)
- *   renderedW = naturalW / naturalH * renderedH
- *   rightPadPx  = (naturalW - rightmostOpaqueX) / naturalH * renderedH
- *   bottomPadPx = (naturalH - bottommostOpaqueY) / naturalH * renderedH
- *   transform: translateX(rightPadPx) translateY(bottomPadPx)
+ * CHAR_SCENE_ANCHOR = foot/pivot point in natural closeup image pixels
+ * CHAR_SCENE_HEIGHT = visual height of the character in natural image pixels
  *
- * Recomputed on resize since 45vh changes in absolute pixels.
+ * On every resize, getCoverInfo() gives us coverScale + offsets, and we
+ * convert scene coords to viewport coords — same math as the screen overlay.
+ *
+ * Transparent padding fractions (padFracRight, padFracBottom) offset
+ * from the rendered image corner to the opaque character body.
  * ──────────────────────────────────────────────────────────────────────── */
 
-// Hard-coded transparent padding fractions (normalised 0..1).
-// Set these after running ?calibrate and noting the values in the panel.
-// null = auto-detect via canvas (only works when served with CORS headers).
+// Character anchor (foot position) in closeup.png natural pixels.
+// Calibrate with ?calibrate and copy the values from the panel.
+const CHAR_SCENE_ANCHOR = [1200, 950];
+
+// Character visual height in closeup.png natural pixels.
+const CHAR_SCENE_HEIGHT = 520;
+
+// Transparent padding fractions (normalised 0..1).
+// null = auto-detect via canvas scan; set manually for reliability.
 const CHAR_PAD = { right: null, bottom: null };
 
-// Normalised transparent padding fractions (set by alpha scan or fallback)
-let charPadRight  = 0; // (naturalW - rightmostOpaqueX) / naturalW
-let charPadBottom = 0; // (naturalH - bottommostOpaqueY) / naturalH
+// Runtime padding fractions (set by detection or hard-coded values)
+let charPadFracRight  = 0;
+let charPadFracBottom = 0;
 
-function updateCharacterTransform() {
+// Speech bubble offset from anchor in natural image pixels [dx, dy]
+// Negative Y = above the anchor point (near head)
+const BUBBLE_SCENE_OFFSET = [-80, -480];
+
+/**
+ * Recompute character position and size from the scene coordinate system.
+ * Uses the same getCoverInfo() as applyScreenTransform().
+ */
+function updateCharacterLayout() {
   if (!character) return;
-  const renderedH = window.innerHeight * 0.45; // 45vh in px
   const nw = character.naturalWidth  || 1;
   const nh = character.naturalHeight || 1;
+
+  const container = document.getElementById('scene-closeup');
+  if (!container) return;
+  const rect = container.getBoundingClientRect();
+
+  const imgW = closeupImg.naturalWidth;
+  const imgH = closeupImg.naturalHeight;
+  if (!imgW || !imgH) return;
+
+  const { coverScale, offX, offY } = getCoverInfo(rect, imgW, imgH);
+
+  // Convert anchor from scene natural px to viewport px
+  const vpX = rect.left + CHAR_SCENE_ANCHOR[0] * coverScale + offX;
+  const vpY = rect.top  + CHAR_SCENE_ANCHOR[1] * coverScale + offY;
+
+  // Rendered character dimensions
+  const renderedH = CHAR_SCENE_HEIGHT * coverScale;
   const renderedW = (nw / nh) * renderedH;
 
-  const rightPx  = charPadRight  * renderedW;
-  const bottomPx = charPadBottom * renderedH;
+  // Transparent padding offsets in rendered px
+  const rightPadPx  = charPadFracRight  * renderedW;
+  const bottomPadPx = charPadFracBottom * renderedH;
 
-  character.style.setProperty('--char-tx', `${rightPx.toFixed(1)}px`);
-  character.style.setProperty('--char-ty', `${bottomPx.toFixed(1)}px`);
+  // Position so that the anchor is the character's bottom-centre of the
+  // opaque body. Adjust for transparent padding.
+  // The opaque body's right edge = renderedW - rightPadPx
+  // The opaque body's bottom edge = renderedH - bottomPadPx
+  // We want the opaque bottom-centre at (vpX, vpY).
+  const opaqueW = renderedW - rightPadPx;
+  const opaqueH = renderedH - bottomPadPx;
+  const left = vpX - opaqueW / 2;
+  const top  = vpY - opaqueH;
+
+  character.style.left   = `${left}px`;
+  character.style.top    = `${top}px`;
+  character.style.width  = `${renderedW}px`;
+  character.style.height = `${renderedH}px`;
+
+  // Speech bubble
+  if (speechBubble) {
+    const bubbleVpX = rect.left + (CHAR_SCENE_ANCHOR[0] + BUBBLE_SCENE_OFFSET[0]) * coverScale + offX;
+    const bubbleVpY = rect.top  + (CHAR_SCENE_ANCHOR[1] + BUBBLE_SCENE_OFFSET[1]) * coverScale + offY;
+    speechBubble.style.left = `${bubbleVpX - 200}px`; // max-width is 200px, right-align
+    speechBubble.style.top  = `${bubbleVpY}px`;
+  }
 }
 
+/**
+ * Auto-detect transparent padding by scanning the character image alpha channel.
+ */
 function detectCharacterPadding() {
   try {
     const img = character;
@@ -168,32 +221,56 @@ function detectCharacterPadding() {
           if (y > maxY) maxY = y;
         }
 
-    // Fraction of image that is transparent padding on each side
-    charPadRight  = (w - (maxX + 1)) / w;
-    charPadBottom = (h - (maxY + 1)) / h;
+    charPadFracRight  = (w - (maxX + 1)) / w;
+    charPadFracBottom = (h - (maxY + 1)) / h;
   } catch (e) {
     console.warn('Character padding auto-detect failed:', e);
-    charPadRight  = 0;
-    charPadBottom = 0;
+    charPadFracRight  = 0;
+    charPadFracBottom = 0;
   }
-  updateCharacterTransform();
+  updateCharacterLayout();
 }
 
 if (character) {
   const run = () => {
     if (CHAR_PAD.right !== null && CHAR_PAD.bottom !== null) {
-      // Use hard-coded values (reliable, no CORS needed)
-      charPadRight  = CHAR_PAD.right;
-      charPadBottom = CHAR_PAD.bottom;
-      updateCharacterTransform();
+      charPadFracRight  = CHAR_PAD.right;
+      charPadFracBottom = CHAR_PAD.bottom;
     } else {
-      detectCharacterPadding(); // canvas scan (needs CORS or same-origin)
+      detectCharacterPadding();
+      return; // detectCharacterPadding calls updateCharacterLayout
     }
+    updateCharacterLayout();
   };
   if (character.complete && character.naturalWidth) run();
   else character.addEventListener('load', run);
 
-  window.addEventListener('resize', updateCharacterTransform);
+  // Recompute on resize — same as screen overlay.
+  // Use wrapper so calibration mode can override via window.updateCharacterLayout.
+  window.addEventListener('resize', () => {
+    if (typeof window.updateCharacterLayout === 'function') {
+      window.updateCharacterLayout();
+    } else {
+      updateCharacterLayout();
+    }
+  });
+}
+
+// Also observe #scene-closeup resize for character layout updates.
+// Use a separate ResizeObserver (the screen overlay has its own in homography.js).
+// Call via window.updateCharacterLayout so calibration mode can override it.
+{
+  const container = document.getElementById('scene-closeup');
+  if (container) {
+    const charObserver = new ResizeObserver(() => {
+      if (typeof window.updateCharacterLayout === 'function') {
+        window.updateCharacterLayout();
+      } else {
+        updateCharacterLayout();
+      }
+    });
+    charObserver.observe(container);
+  }
 }
 
 /* ─── Speech bubble content ─── */
@@ -360,27 +437,62 @@ if (window.location.search.includes('calibrate')) {
   if (character) {
     character.classList.add('visible');
     character.style.transition = 'none';
+    updateCharacterLayout();
   }
 
-  /* ── Character drag — drag the character body directly ── */
-  // Track extra right/bottom offset (in px) applied on top of the auto-detected padding
-  let calOffsetRight = 0;
-  let calOffsetBottom = 0;
+  /* ── Character drag — drag the character in scene coordinates ── */
+  // Working copies of scene anchor and height for calibration
+  const calAnchor = [...CHAR_SCENE_ANCHOR];
+  let calHeight = CHAR_SCENE_HEIGHT;
 
-  function applyCalOffset() {
+  // Override updateCharacterLayout to use calibration values
+  const origUpdateCharacterLayout = updateCharacterLayout;
+  window.updateCharacterLayoutCal = function() {
     if (!character) return;
-    const renderedH = window.innerHeight * 0.45;
-    const nw = character.naturalWidth || 1;
+    const nw = character.naturalWidth  || 1;
     const nh = character.naturalHeight || 1;
+
+    const container = document.getElementById('scene-closeup');
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+
+    const imgW = closeupImg.naturalWidth;
+    const imgH = closeupImg.naturalHeight;
+    if (!imgW || !imgH) return;
+
+    const { coverScale, offX, offY } = getCoverInfo(rect, imgW, imgH);
+
+    const vpX = rect.left + calAnchor[0] * coverScale + offX;
+    const vpY = rect.top  + calAnchor[1] * coverScale + offY;
+
+    const renderedH = calHeight * coverScale;
     const renderedW = (nw / nh) * renderedH;
 
-    const rightPx  = charPadRight  * renderedW + calOffsetRight;
-    const bottomPx = charPadBottom * renderedH + calOffsetBottom;
+    const rightPadPx  = charPadFracRight  * renderedW;
+    const bottomPadPx = charPadFracBottom * renderedH;
 
-    character.style.setProperty('--char-tx', `${rightPx.toFixed(1)}px`);
-    character.style.setProperty('--char-ty', `${bottomPx.toFixed(1)}px`);
-    updatePanel();
-  }
+    const opaqueW = renderedW - rightPadPx;
+    const opaqueH = renderedH - bottomPadPx;
+    const left = vpX - opaqueW / 2;
+    const top  = vpY - opaqueH;
+
+    character.style.left   = `${left}px`;
+    character.style.top    = `${top}px`;
+    character.style.width  = `${renderedW}px`;
+    character.style.height = `${renderedH}px`;
+
+    if (speechBubble) {
+      const bubbleVpX = rect.left + (calAnchor[0] + BUBBLE_SCENE_OFFSET[0]) * coverScale + offX;
+      const bubbleVpY = rect.top  + (calAnchor[1] + BUBBLE_SCENE_OFFSET[1]) * coverScale + offY;
+      speechBubble.style.left = `${bubbleVpX - 200}px`;
+      speechBubble.style.top  = `${bubbleVpY}px`;
+    }
+  };
+
+  // Replace the global layout function with the calibration version
+  // so ResizeObserver and window resize also use cal values
+  window.updateCharacterLayout = window.updateCharacterLayoutCal;
+  window.updateCharacterLayoutCal();
 
   // Enable pointer events on character for dragging in calibration mode
   if (character) {
@@ -391,15 +503,18 @@ if (window.location.search.includes('calibrate')) {
       e.preventDefault(); e.stopPropagation();
       character.style.cursor = 'grabbing';
       const startX = e.clientX, startY = e.clientY;
-      const startOR = calOffsetRight, startOB = calOffsetBottom;
+      const startAnchorX = calAnchor[0], startAnchorY = calAnchor[1];
+
+      const container = document.getElementById('scene-closeup');
+      const rect = container.getBoundingClientRect();
+      const { coverScale } = getCoverInfo(rect, closeupImg.naturalWidth, closeupImg.naturalHeight);
 
       const onMove = e => {
-        // Dragging right increases the right offset (pushes image right = more off-screen)
-        // But intuitively dragging right should move the visible body right,
-        // which means DECREASING the right offset (less compensation)
-        calOffsetRight  = startOR - (e.clientX - startX);
-        calOffsetBottom = startOB - (e.clientY - startY);
-        applyCalOffset();
+        // Convert viewport drag delta to scene natural px
+        calAnchor[0] = Math.round(startAnchorX + (e.clientX - startX) / coverScale);
+        calAnchor[1] = Math.round(startAnchorY + (e.clientY - startY) / coverScale);
+        window.updateCharacterLayoutCal();
+        updatePanel();
       };
       const onUp = () => {
         character.style.cursor = 'grab';
@@ -409,26 +524,26 @@ if (window.location.search.includes('calibrate')) {
       document.addEventListener('mousemove', onMove);
       document.addEventListener('mouseup', onUp);
     });
+
+    // Mouse wheel to adjust character height
+    character.addEventListener('wheel', e => {
+      e.preventDefault();
+      calHeight = Math.max(50, calHeight + (e.deltaY > 0 ? -20 : 20));
+      window.updateCharacterLayoutCal();
+      updatePanel();
+    }, { passive: false });
   }
 
   function updatePanel() {
-    const renderedH = window.innerHeight * 0.45;
-    const nw = (character && character.naturalWidth) || 1;
-    const nh = (character && character.naturalHeight) || 1;
-    const renderedW = (nw / nh) * renderedH;
-    const totalRightPx  = charPadRight  * renderedW + calOffsetRight;
-    const totalBottomPx = charPadBottom * renderedH + calOffsetBottom;
-
     panel.innerHTML =
-      `<b style="color:#ffd700">&#x2699; Calibration</b>  <span style="color:#888;font-size:10px">&#x25CF;corners  &#x25C6;edges  drag character to reposition</span><br><br>` +
+      `<b style="color:#ffd700">&#x2699; Calibration</b>  <span style="color:#888;font-size:10px">&#x25CF;corners  &#x25C6;edges  drag character / scroll to resize</span><br><br>` +
       `<span style="color:#88ffcc">const SCREEN_CORNERS = [<br>` +
       cal.map((c,i) => `&nbsp;&nbsp;[${c[0]}, ${c[1]}], <span style="color:#555">// ${LABELS[i]}</span>`).join('<br>') +
       `<br>];<br><br>const EDGE_MIDS = [${mids.map(v=>Math.round(v)).join(', ')}];<br>` +
-      `<span style="color:#888">// top, right, bottom, left</span><br><br>` +
-      `<span style="color:#ffcc44">// Character padding (auto-detected)<br>` +
-      `padRight: ${(charPadRight * 100).toFixed(1)}%  padBottom: ${(charPadBottom * 100).toFixed(1)}%<br>` +
-      `// Rendered offset: right=${totalRightPx.toFixed(1)}px  bottom=${totalBottomPx.toFixed(1)}px<br>` +
-      `// Manual adjustment: right=${calOffsetRight.toFixed(1)}px  bottom=${calOffsetBottom.toFixed(1)}px</span></span>`;
+      `<span style="color:#888">// top, right, bottom, left</span></span><br><br>` +
+      `<span style="color:#ffcc44">const CHAR_SCENE_ANCHOR = [${calAnchor[0]}, ${calAnchor[1]}];<br>` +
+      `const CHAR_SCENE_HEIGHT = ${calHeight};<br><br>` +
+      `<span style="color:#888">// Padding fracs: right=${(charPadFracRight * 100).toFixed(1)}%  bottom=${(charPadFracBottom * 100).toFixed(1)}%</span></span>`;
   }
   updatePanel();
 }
