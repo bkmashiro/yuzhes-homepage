@@ -227,7 +227,9 @@ function openInternet() {
 
 /* ─── Start menu ─── */
 function initStartMenu() {
-  const btn = document.getElementById('start-btn');
+  const btn  = document.getElementById('start-btn');
+  const logo = document.getElementById('start-logo');
+  if (logo) logo.src = ICONS.winlogo;
   const menu = document.getElementById('start-menu');
 
   btn.addEventListener('click', e => {
@@ -292,14 +294,7 @@ function initDesktopIcons() {
   });
 }
 
-/* ─── Start-logo image fallback (in case asset missing) ─── */
-document.addEventListener('DOMContentLoaded', () => {
-  const logo = document.querySelector('#start-btn img');
-  if (logo) {
-    logo.onerror = () => { logo.style.display = 'none'; };
-    logo.src = ICONS.winlogo;
-  }
-});
+/* ─── Start-logo set via inline SVG data URI ─── */
 
 /* ─── Init ─── */
 function initWin98() {
