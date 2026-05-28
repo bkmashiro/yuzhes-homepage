@@ -10,6 +10,49 @@
  * Fine-tune interactively: append ?calibrate to the URL.
  */
 
+import { initScreenTransform, getCoverInfo } from './homography.js';
+import { initWin98 } from './win98.js';
+
+/* ─── Speech bubble system ─── */
+const SPEECH_COOLDOWN = 8000; // minimum 8 seconds between messages
+let _speechTimer = null;
+let _speechCooldownUntil = 0;
+let _speechShowing = false;
+
+/**
+ * Show a speech bubble with the given text.
+ * @param {string} text - Text to display
+ * @param {number} duration - How long to show (ms), default 4000
+ * @param {boolean} force - If true, override cooldown/showing check
+ */
+export function saySpeech(text, duration = 4000, force = false) {
+  const bubble = document.getElementById('speech-bubble');
+  if (!bubble) return;
+
+  const now = Date.now();
+  if (!force) {
+    if (_speechShowing) return;
+    if (now < _speechCooldownUntil) return;
+  }
+
+  // Clear any pending hide timer
+  if (_speechTimer) {
+    clearTimeout(_speechTimer);
+    _speechTimer = null;
+  }
+
+  bubble.innerHTML = text;
+  bubble.classList.add('visible');
+  _speechShowing = true;
+  _speechCooldownUntil = now + SPEECH_COOLDOWN;
+
+  _speechTimer = setTimeout(() => {
+    bubble.classList.remove('visible');
+    _speechShowing = false;
+    _speechTimer = null;
+  }, duration);
+}
+
 const SCREEN_CORNERS = [
   [317,  278],  // top-left
   [1065, 290],  // top-right
@@ -65,13 +108,10 @@ function zoomIntoScreen(e) {
     if (character) {
       setTimeout(() => character.classList.add('visible'), 100);
     }
-    if (speechBubble) {
-      setTimeout(() => {
-        speechBubble.classList.add('visible');
-        // Auto-hide after 5 seconds
-        setTimeout(() => speechBubble.classList.remove('visible'), 5600);
-      }, 600);
-    }
+    // Show welcome speech bubble after a short delay
+    setTimeout(() => {
+      saySpeech('Welcome! &#x2728;<br>I\'m the interface<br>between worlds~', 5000, true);
+    }, 600);
   }, 900);
 
   zoomHint.style.opacity = '0';
@@ -279,14 +319,6 @@ if (character) {
     });
     charObserver.observe(container);
   }
-}
-
-/* ─── Speech bubble content ─── */
-if (speechBubble) {
-  speechBubble.innerHTML = `
-    Welcome! &#x2728;<br>
-    I'm the interface<br>between worlds~
-  `;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

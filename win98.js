@@ -4,6 +4,8 @@
  * Creates icons, handles drag-to-move windows, taskbar, clock, start menu.
  */
 
+import { saySpeech } from './main.js';
+
 /* ─── Icon pixel art (SVG data URIs) ─── */
 const ICONS = {
   myComputer: `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='4' y='4' width='24' height='18' fill='%23c0c0c0' stroke='%23000' stroke-width='1'/><rect x='6' y='6' width='20' height='14' fill='%230000aa'/><rect x='10' y='22' width='12' height='3' fill='%23c0c0c0'/><rect x='7' y='25' width='18' height='2' fill='%23808080'/></svg>`,
@@ -44,8 +46,11 @@ const DESKTOP_ICONS = [
     id: 'recycle',
     label: 'Recycle Bin',
     icon: ICONS.recycle,
-    onOpen: () => openWindow('recycle-bin', 'Recycle Bin', ICONS.recycle,
-      '<p style="color:#808080;font-style:italic">Recycle Bin is empty.</p>'),
+    onOpen: () => {
+      openWindow('recycle-bin', 'Recycle Bin', ICONS.recycle,
+        '<p style="color:#808080;font-style:italic">Recycle Bin is empty.</p>');
+      saySpeech("It's empty... just like my inbox \u{1F4ED}");
+    },
   },
 ];
 
@@ -121,6 +126,9 @@ function openWindow(id, title, icon, bodyHTML, opts = {}) {
 function minimizeWindow(id) {
   const win = document.getElementById(`win-${id}`);
   if (!win) return;
+  if (Math.random() < 0.3) {
+    saySpeech("Out of sight, out of mind \u2728");
+  }
   win.classList.add('minimizing');
   const tb = document.getElementById(`tb-${id}`);
   if (tb) tb.classList.remove('active');
@@ -307,7 +315,12 @@ function addResizeHandles(win, id) {
 }
 
 /* ─── Window content builders ─── */
+let _myComputerOpenedBefore = false;
 function openMyComputer() {
+  if (!_myComputerOpenedBefore) {
+    _myComputerOpenedBefore = true;
+    saySpeech("Make yourself at home~ \u{1F3E0}");
+  }
   openWindow('my-computer', 'My Computer', ICONS.myComputer, `
     <div style="display:grid;grid-template-columns:repeat(3,64px);gap:16px;justify-content:center;padding:16px">
       <div class="desktop-icon" ondblclick="openProjects()">
@@ -352,6 +365,7 @@ Find me at:
 }
 
 function openInternet() {
+  saySpeech("You're really using IE? Respect. \u{1F602}");
   openWindow('internet', 'Internet Explorer', ICONS.internet, `
     <div style="text-align:center;padding:20px">
       <p style="font-size:14px;margin-bottom:12px">&#x1F310; Links</p>
@@ -625,7 +639,7 @@ function initContextMenus() {
       // Desktop background context menu
       showContextMenu(e.clientX, e.clientY, [
         { label: 'Arrange Icons', sub: [
-          { label: 'by Name' },
+          { label: 'by Name', action: () => saySpeech("My icons were already perfect...") },
           { label: 'by Type' },
           { label: 'by Size' },
           { label: 'by Date' },
@@ -764,12 +778,60 @@ async function initAsciiWidget() {
   });
 }
 
+/* ─── Easter egg: Start button rapid clicks ─── */
+function initStartButtonEasterEgg() {
+  const btn = document.getElementById('start-btn');
+  if (!btn) return;
+  let clickTimes = [];
+  btn.addEventListener('click', () => {
+    const now = Date.now();
+    clickTimes.push(now);
+    // Keep only clicks within last 2 seconds
+    clickTimes = clickTimes.filter(t => now - t < 2000);
+    if (clickTimes.length >= 3) {
+      saySpeech("Okay okay I heard you! \u{1F624}", 4000, true);
+      clickTimes = [];
+    }
+  });
+}
+
+/* ─── Easter egg: Idle detection ─── */
+function initIdleEasterEgg() {
+  let idleTimer = null;
+  let idleTriggered = false;
+  const IDLE_MS = 30000;
+
+  function resetIdle() {
+    if (idleTriggered) return;
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => {
+      if (!idleTriggered) {
+        idleTriggered = true;
+        saySpeech("Hello? Anyone there...? \u{1F440}");
+      }
+    }, IDLE_MS);
+  }
+
+  const desktop = document.getElementById('win98-desktop');
+  if (desktop) {
+    desktop.addEventListener('mousemove', resetIdle);
+    resetIdle();
+  }
+}
+
 /* ─── Init ─── */
-function initWin98() {
+export function initWin98() {
   initDesktopIcons();
   initStartMenu();
   initClock();
   initContextMenus();
   initCRTScan();
   initAsciiWidget();
+  initStartButtonEasterEgg();
+  initIdleEasterEgg();
+
+  // Expose functions needed by inline onclick handlers in generated HTML
+  window.openProjects = openProjects;
+  window.openAbout = openAbout;
+  window.openInternet = openInternet;
 }

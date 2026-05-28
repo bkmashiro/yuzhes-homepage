@@ -1,0 +1,25 @@
+{
+  "name": "yuzhes-homepage",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bkmashiro/yuzhes-homepage.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/bkmashiro/yuzhes-homepage/issues"
+  },
+  "homepage": "https://github.com/bkmashiro/yuzhes-homepage#readme",
+  "devDependencies": {
+    "vite": "^8.0.14"
+  }
+}

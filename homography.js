@@ -112,7 +112,7 @@ function buildClipPath(w, h, mids) {
  * Returns { coverScale, offX, offY } so that a point at natural px [nx, ny]
  * maps to container-relative px [nx * coverScale + offX, ny * coverScale + offY].
  */
-function getCoverInfo(containerRect, imgW, imgH) {
+export function getCoverInfo(containerRect, imgW, imgH) {
   const coverScale = Math.max(containerRect.width / imgW, containerRect.height / imgH);
   const offX = (containerRect.width  - imgW * coverScale) / 2;
   const offY = (containerRect.height - imgH * coverScale) / 2;
@@ -189,7 +189,7 @@ function applyScreenTransform(corners, imgW, imgH, edgeMids = [0, 0, 0, 0]) {
 let _screenResizeObserver = null;
 
 /** Public entry point. Call once the closeup image is loaded. */
-function initScreenTransform(corners, imgW, imgH, edgeMids = [0, 0, 0, 0]) {
+export function initScreenTransform(corners, imgW, imgH, edgeMids = [0, 0, 0, 0]) {
   window._screenState = [corners, imgW, imgH, edgeMids];
   applyScreenTransform(corners, imgW, imgH, edgeMids);
 
