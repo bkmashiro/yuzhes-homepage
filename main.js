@@ -13,10 +13,10 @@
  */
 
 const SCREEN_CORNERS = [
-  [316,   40],  // top-left
-  [1065,  63],  // top-right
-  [1075, 988],  // bottom-right
-  [338,  1070], // bottom-left
+  [317,  278],  // top-left
+  [1065, 290],  // top-right
+  [1079, 821],  // bottom-right
+  [338,  869],  // bottom-left
 ];
 
 // Edge midpoint offsets in image-natural px.
@@ -174,14 +174,6 @@ if (window.location.search.includes('calibrate')) {
     repositionMidHandles();
   }
 
-  function updatePanel() {
-    panel.innerHTML =
-      `<b style="color:#ffd700">⚙ Calibration</b>  <span style="color:#888;font-size:10px">●corners  ◆edges</span><br><br>` +
-      `<span style="color:#88ffcc">const SCREEN_CORNERS = [<br>` +
-      cal.map((c,i) => `&nbsp;&nbsp;[${c[0]}, ${c[1]}], <span style="color:#555">// ${LABELS[i]}</span>`).join('<br>') +
-      `<br>];<br><br>const EDGE_MIDS = [${mids.map(v=>Math.round(v)).join(', ')}];<br>` +
-      `<span style="color:#888">// top, right, bottom, left</span></span>`;
-  }
 
   /* ── Corner handles (circles) ── */
   cal.forEach((corner, i) => {
@@ -322,5 +314,111 @@ if (window.location.search.includes('calibrate')) {
   repositionMidHandles();
   window.addEventListener('resize', repositionMidHandles);
 
+  /* ── Character position/scale calibration ── */
+  // charState: [right%, bottom%, height%] as percentages of scene container
+  const charState = { right: 8, bottom: 0, height: 45 };
+
   updatePanel();
+
+  function applyCharState() {
+    if (!character) return;
+    character.style.right  = `${charState.right}%`;
+    character.style.bottom = `${charState.bottom}%`;
+    character.style.height = `${charState.height}%`;
+    character.style.opacity = '1';
+    character.style.transform = 'none';
+    updatePanel();
+  }
+  applyCharState();
+
+  function updatePanel() {
+    panel.innerHTML =
+      `<b style="color:#ffd700">⚙ Calibration</b>  <span style="color:#888;font-size:10px">●corners  ◆edges  ★char</span><br><br>` +
+      `<span style="color:#88ffcc">const SCREEN_CORNERS = [<br>` +
+      cal.map((c,i) => `&nbsp;&nbsp;[${c[0]}, ${c[1]}], <span style="color:#555">// ${LABELS[i]}</span>`).join('<br>') +
+      `<br>];<br><br>const EDGE_MIDS = [${mids.map(v=>Math.round(v)).join(', ')}];<br>` +
+      `<span style="color:#888">// top, right, bottom, left</span><br><br>` +
+      `<span style="color:#ffcc44">// Character<br>` +
+      `right:${charState.right.toFixed(1)}% bottom:${charState.bottom.toFixed(1)}% height:${charState.height.toFixed(1)}%</span></span>`;
+  }
+
+  // Character drag handle — a star marker
+  const charHandle = document.createElement('div');
+  charHandle.style.cssText = `
+    position:fixed; width:20px; height:20px; margin:-10px;
+    background:#ffcc44; border-radius:50%; cursor:grab; z-index:10000;
+    display:flex; align-items:center; justify-content:center;
+    font-size:13px; box-shadow:0 0 8px #ffcc44;
+  `;
+  charHandle.textContent = '★';
+  document.body.appendChild(charHandle);
+
+  // Scale handle — smaller circle above the main handle
+  const scaleHandle = document.createElement('div');
+  scaleHandle.style.cssText = `
+    position:fixed; width:16px; height:16px; margin:-8px;
+    background:#ff88ff; border-radius:50%; cursor:ns-resize; z-index:10000;
+    display:flex; align-items:center; justify-content:center;
+    font-size:10px; box-shadow:0 0 6px #ff88ff;
+  `;
+  scaleHandle.textContent = '↕';
+  document.body.appendChild(scaleHandle);
+
+  function repositionCharHandles() {
+    const r = sceneCloseup.getBoundingClientRect();
+    // Bottom-anchor position of character
+    const bx = r.right  - (charState.right  / 100) * r.width;
+    const by = r.bottom - (charState.bottom / 100) * r.height;
+    charHandle.style.left = `${bx}px`;
+    charHandle.style.top  = `${by}px`;
+    // Scale handle sits 30px above drag handle
+    scaleHandle.style.left = `${bx}px`;
+    scaleHandle.style.top  = `${by - 30}px`;
+  }
+  repositionCharHandles();
+  window.addEventListener('resize', repositionCharHandles);
+
+  // Drag to reposition
+  charHandle.addEventListener('mousedown', e => {
+    e.preventDefault(); e.stopPropagation();
+    charHandle.style.cursor = 'grabbing';
+    const startX = e.clientX, startY = e.clientY;
+    const startR = charState.right, startB = charState.bottom;
+    const r = sceneCloseup.getBoundingClientRect();
+    const onMove = e => {
+      // Right increases as we move left, bottom increases as we move up
+      charState.right  = Math.max(0, startR  - (e.clientX - startX) / r.width  * 100);
+      charState.bottom = Math.max(0, startB  - (e.clientY - startY) / r.height * 100);
+      applyCharState();
+      repositionCharHandles();
+    };
+    const onUp = () => {
+      charHandle.style.cursor = 'grab';
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+
+  // Drag scale handle vertically to resize
+  scaleHandle.addEventListener('mousedown', e => {
+    e.preventDefault(); e.stopPropagation();
+    scaleHandle.style.cursor = 'grabbing';
+    const startY = e.clientY, startH = charState.height;
+    const r = sceneCloseup.getBoundingClientRect();
+    const onMove = e => {
+      // Drag up = bigger
+      charState.height = Math.max(5, Math.min(100, startH - (e.clientY - startY) / r.height * 100));
+      applyCharState();
+      repositionCharHandles();
+    };
+    const onUp = () => {
+      scaleHandle.style.cursor = 'ns-resize';
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
 }
