@@ -168,12 +168,27 @@ if (window.location.search.includes('calibrate')) {
   `;
   document.body.appendChild(panel);
 
+  /**
+   * Same coordinate math as applyScreenTransform: object-fit cover → uniform
+   * coverScale with centred offsets.  All calibration handle positioning and
+   * drag reading must use this so the stored natural-px values are correct at
+   * every viewport size.
+   */
+  function calCoverInfo() {
+    const r   = closeupImg.getBoundingClientRect();
+    const iW  = closeupImg.naturalWidth;
+    const iH  = closeupImg.naturalHeight;
+    const scale = Math.max(r.width / iW, r.height / iH);
+    const oX  = (r.width  - iW * scale) / 2;
+    const oY  = (r.height - iH * scale) / 2;
+    return { r, scale, oX, oY };
+  }
+
   function refresh() {
     initScreenTransform(cal, closeupImg.naturalWidth, closeupImg.naturalHeight, mids);
     updatePanel();
     repositionMidHandles();
   }
-
 
   /* ── Corner handles (circles) ── */
   cal.forEach((corner, i) => {
@@ -190,9 +205,9 @@ if (window.location.search.includes('calibrate')) {
     document.body.appendChild(h);
 
     function reposition() {
-      const r = closeupImg.getBoundingClientRect();
-      h.style.left = `${r.left + cal[i][0] * (r.width  / closeupImg.naturalWidth)}px`;
-      h.style.top  = `${r.top  + cal[i][1] * (r.height / closeupImg.naturalHeight)}px`;
+      const { r, scale, oX, oY } = calCoverInfo();
+      h.style.left = `${r.left + cal[i][0] * scale + oX}px`;
+      h.style.top  = `${r.top  + cal[i][1] * scale + oY}px`;
     }
     reposition();
     window.addEventListener('resize', reposition);
@@ -201,9 +216,9 @@ if (window.location.search.includes('calibrate')) {
       e.preventDefault(); e.stopPropagation();
       h.style.cursor = 'grabbing';
       const onMove = e => {
-        const r = closeupImg.getBoundingClientRect();
-        cal[i][0] = Math.round((e.clientX - r.left) * (closeupImg.naturalWidth  / r.width));
-        cal[i][1] = Math.round((e.clientY - r.top)  * (closeupImg.naturalHeight / r.height));
+        const { r, scale, oX, oY } = calCoverInfo();
+        cal[i][0] = Math.round((e.clientX - r.left - oX) / scale);
+        cal[i][1] = Math.round((e.clientY - r.top  - oY) / scale);
         reposition();
         refresh();
       };
@@ -218,41 +233,27 @@ if (window.location.search.includes('calibrate')) {
   });
 
   /* ── Edge midpoint handles (diamonds) ── */
-  // Each edge midpoint handle sits at the geometric midpoint of the edge
-  // and can only be dragged perpendicular to that edge.
-  // Dragging changes mids[i] (offset in image-natural px).
   const EDGE_LABELS  = ['▲T', '▶R', '▼B', '◀L'];
   const EDGE_COLOR   = '#ff88ff';
   const midHandleEls = [];
 
+  // Edge pair indices: 0=top(0→1), 1=right(1→2), 2=bottom(2→3), 3=left(3→0)
+  const EDGE_PAIRS = [[0,1],[1,2],[2,3],[3,0]];
+
   function getMidHandleScreenPos(i) {
-    // Midpoint of the edge in image-natural coords
-    const r = closeupImg.getBoundingClientRect();
-    const sX = r.width  / closeupImg.naturalWidth;
-    const sY = r.height / closeupImg.naturalHeight;
-    // Edges: 0=top(TL→TR), 1=right(TR→BR), 2=bottom(BR→BL), 3=left(BL→TL)
-    const edgePts = [
-      [cal[0], cal[1]],  // top
-      [cal[1], cal[2]],  // right
-      [cal[2], cal[3]],  // bottom
-      [cal[3], cal[0]],  // left
-    ];
-    const [a, b] = edgePts[i];
-    // Geometric midpoint
-    const mx = (a[0] + b[0]) / 2;
-    const my = (a[1] + b[1]) / 2;
-    // Perpendicular unit vector (inward direction)
-    const dx = b[0] - a[0], dy = b[1] - a[1];
+    const { r, scale, oX, oY } = calCoverInfo();
+    const [ai, bi] = EDGE_PAIRS[i];
+    const a = cal[ai], b = cal[bi];
+    // Midpoint in natural px → screen px
+    const mx = r.left + (a[0]+b[0])/2 * scale + oX;
+    const my = r.top  + (a[1]+b[1])/2 * scale + oY;
+    // Edge direction in natural px (uniform scale ⇒ same unit vector in screen space)
+    const dx = b[0]-a[0], dy = b[1]-a[1];
     const len = Math.hypot(dx, dy) || 1;
-    // Perpendicular outward: rotate 90°
-    // For top: perp is (0,-1); for right: (1,0); etc. But let's compute generically:
-    const px = -dy / len, py = dx / len;
-    // Offset in image-natural px → screen px
-    const offsetPx = mids[i] * Math.hypot(sX, sY) / Math.SQRT2;
-    return [
-      r.left + mx * sX + px * offsetPx,
-      r.top  + my * sY + py * offsetPx,
-    ];
+    const px = -dy/len, py = dx/len; // perp outward unit vector
+    // mids[i] in natural px → screen px via uniform coverScale
+    const offsetPx = mids[i] * scale;
+    return [mx + px*offsetPx, my + py*offsetPx];
   }
 
   function repositionMidHandles() {
@@ -275,30 +276,24 @@ if (window.location.search.includes('calibrate')) {
     document.body.appendChild(h);
     midHandleEls.push(h);
 
-    // Perpendicular drag axis depends on edge
     h.addEventListener('mousedown', e => {
       e.preventDefault(); e.stopPropagation();
       h.style.cursor = 'grabbing';
       const startMid = mids[i];
       const startX = e.clientX, startY = e.clientY;
 
-      // Compute perpendicular direction in screen space for this edge
-      const r = closeupImg.getBoundingClientRect();
-      const sX = r.width  / closeupImg.naturalWidth;
-      const sY = r.height / closeupImg.naturalHeight;
-      const edgePts = [
-        [cal[0], cal[1]], [cal[1], cal[2]],
-        [cal[2], cal[3]], [cal[3], cal[0]],
-      ];
-      const [a, b] = edgePts[i];
-      const dx = (b[0]-a[0])*sX, dy = (b[1]-a[1])*sY;
+      // Perpendicular direction in screen space (uniform scale ⇒ same direction as natural)
+      const { scale } = calCoverInfo();
+      const [ai, bi] = EDGE_PAIRS[i];
+      const a = cal[ai], b = cal[bi];
+      const dx = b[0]-a[0], dy = b[1]-a[1];
       const len = Math.hypot(dx, dy) || 1;
-      const px = -dy/len, py = dx/len; // perp outward unit vec in screen px
+      const px = -dy/len, py = dx/len; // perp outward unit vec
 
       const onMove = e => {
         const drag = (e.clientX-startX)*px + (e.clientY-startY)*py;
-        const imgScale = Math.hypot(sX, sY) / Math.SQRT2;
-        mids[i] = Math.round(startMid + drag / imgScale);
+        // drag is in screen px; divide by coverScale to get natural px
+        mids[i] = Math.round(startMid + drag / scale);
         refresh();
       };
       const onUp = () => {
