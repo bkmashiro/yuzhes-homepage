@@ -128,6 +128,11 @@ initWin98();
  * Recomputed on resize since 45vh changes in absolute pixels.
  * ──────────────────────────────────────────────────────────────────────── */
 
+// Hard-coded transparent padding fractions (normalised 0..1).
+// Set these after running ?calibrate and noting the values in the panel.
+// null = auto-detect via canvas (only works when served with CORS headers).
+const CHAR_PAD = { right: null, bottom: null };
+
 // Normalised transparent padding fractions (set by alpha scan or fallback)
 let charPadRight  = 0; // (naturalW - rightmostOpaqueX) / naturalW
 let charPadBottom = 0; // (naturalH - bottommostOpaqueY) / naturalH
@@ -176,8 +181,14 @@ function detectCharacterPadding() {
 
 if (character) {
   const run = () => {
-    detectCharacterPadding();
-    updateCharacterTransform();
+    if (CHAR_PAD.right !== null && CHAR_PAD.bottom !== null) {
+      // Use hard-coded values (reliable, no CORS needed)
+      charPadRight  = CHAR_PAD.right;
+      charPadBottom = CHAR_PAD.bottom;
+      updateCharacterTransform();
+    } else {
+      detectCharacterPadding(); // canvas scan (needs CORS or same-origin)
+    }
   };
   if (character.complete && character.naturalWidth) run();
   else character.addEventListener('load', run);
