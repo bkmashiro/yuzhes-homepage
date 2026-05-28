@@ -16,6 +16,7 @@ const ICONS = {
   internet:   `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='13' fill='%234169e1' stroke='%23000' stroke-width='1'/><ellipse cx='16' cy='16' rx='6' ry='13' fill='none' stroke='%23fff' stroke-width='1'/><line x1='3' y1='16' x2='29' y2='16' stroke='%23fff' stroke-width='1'/><line x1='6' y1='9' x2='26' y2='9' stroke='%23fff' stroke-width='1'/><line x1='6' y1='23' x2='26' y2='23' stroke='%23fff' stroke-width='1'/></svg>`,
   recycle:    `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='7' y='12' width='18' height='16' rx='1' fill='%23c0c0c0' stroke='%23808080' stroke-width='1'/><rect x='9' y='14' width='14' height='12' fill='%23fff'/><line x1='5' y1='12' x2='27' y2='12' stroke='%23808080' stroke-width='2'/><rect x='12' y='9' width='8' height='3' rx='1' fill='%23c0c0c0' stroke='%23808080' stroke-width='1'/><path d='M11 16 Q13 14 12 18' stroke='%23808080' stroke-width='1' fill='none'/><path d='M15 15 Q18 13 17 19' stroke='%23808080' stroke-width='1' fill='none'/><path d='M19 16 Q21 14 20 18' stroke='%23808080' stroke-width='1' fill='none'/></svg>`,
   winlogo:    `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='2' y='2' width='13' height='13' fill='%23ff0000'/><rect x='17' y='2' width='13' height='13' fill='%2300cc00'/><rect x='2' y='17' width='13' height='13' fill='%230000ff'/><rect x='17' y='17' width='13' height='13' fill='%23ffcc00'/></svg>`,
+  mine:       `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='8' fill='%23333'/><line x1='16' y1='4' x2='16' y2='28' stroke='%23333' stroke-width='2'/><line x1='4' y1='16' x2='28' y2='16' stroke='%23333' stroke-width='2'/><line x1='8' y1='8' x2='24' y2='24' stroke='%23333' stroke-width='2'/><line x1='24' y1='8' x2='8' y2='24' stroke='%23333' stroke-width='2'/></svg>`,
 };
 
 /* ─── Desktop icon definitions ─── */
@@ -59,6 +60,12 @@ const DESKTOP_ICONS = [
     label: 'guestbook.txt',
     icon: ICONS.notepad,
     onOpen: openGuestbook,
+  },
+  {
+    id: 'minesweeper',
+    label: 'Minesweeper',
+    icon: ICONS.mine,
+    onOpen: openMinesweeper,
   },
 ];
 
@@ -743,6 +750,8 @@ function initContextMenus() {
           { label: 'Bitmap Image' },
         ]},
         '---',
+        { label: 'Format C:\\...', action: openFormatDisk },
+        '---',
         {
           label: 'Properties',
           action: () => {
@@ -1043,6 +1052,215 @@ function initScreensaver() {
   resetScreensaverTimer();
 }
 
+/* ─── BSOD (Konami code) ─── */
+function initBSOD() {
+  const KONAMI = [
+    'ArrowUp','ArrowUp','ArrowDown','ArrowDown',
+    'ArrowLeft','ArrowRight','ArrowLeft','ArrowRight',
+    'b','a'
+  ];
+  let pos = 0;
+
+  document.addEventListener('keydown', e => {
+    if (e.key === KONAMI[pos]) {
+      pos++;
+      if (pos === KONAMI.length) {
+        pos = 0;
+        showBSOD();
+      }
+    } else {
+      pos = (e.key === KONAMI[0]) ? 1 : 0;
+    }
+  });
+}
+
+function showBSOD() {
+  saySpeech("404: brain not found \uD83D\uDC80", 5000, true);
+
+  const bsod = document.createElement('div');
+  bsod.id = 'bsod';
+  bsod.innerHTML = `
+    <h2>Windows</h2>
+    <p>A fatal exception 0E has occurred at 0028:C0011E36 in VXD YUZHES(01) + 00010E36.<br>
+    The current application will be terminated.</p>
+    <p>&nbsp;</p>
+    <p>* Press any key to terminate the current application.</p>
+    <p>* Press CTRL+ALT+DEL again to restart your computer.<br>
+    &nbsp;&nbsp;You will lose any unsaved information in all applications.</p>
+    <p>&nbsp;</p>
+    <p>Press any key to continue_</p>
+  `;
+  document.body.appendChild(bsod);
+
+  function dismiss() {
+    bsod.remove();
+    document.removeEventListener('keydown', dismiss);
+    bsod.removeEventListener('click', dismiss);
+  }
+  bsod.addEventListener('click', dismiss);
+  document.addEventListener('keydown', dismiss);
+}
+
+/* ─── Format C: easter egg ─── */
+function openFormatDisk() {
+  saySpeech("Haha, got you~ \uD83D\uDE08", 4000, true);
+  openWindow('format-c', 'Format (C:)', ICONS.myComputer, `
+    <div style="padding:12px;display:flex;flex-direction:column;gap:10px">
+      <p style="font-size:12px">Formatting drive C:...</p>
+      <div id="format-progress-bar" style="height:16px;background:#fff;border:1px inset #808080;position:relative;overflow:hidden">
+        <div id="format-progress-fill" style="height:100%;width:0%;background:#000080;transition:width 0.05s linear"></div>
+      </div>
+      <p id="format-status" style="font-size:12px;color:#808080">0% complete</p>
+    </div>
+  `, { width: 260, height: 150 });
+
+  let pct = 0;
+  const fill = document.getElementById('format-progress-fill');
+  const status = document.getElementById('format-status');
+  const interval = setInterval(() => {
+    pct += Math.random() * 5 + 2;
+    if (pct >= 100) {
+      pct = 100;
+      clearInterval(interval);
+      if (fill) fill.style.width = '100%';
+      if (status) status.innerHTML = '<b style="color:#008000">Just kidding! \uD83D\uDE04 Your files are safe.</b>';
+    } else {
+      if (fill) fill.style.width = `${pct}%`;
+      if (status) status.textContent = `${Math.floor(pct)}% complete`;
+    }
+  }, 80);
+}
+
+/* ─── Minesweeper ─── */
+function openMinesweeper() {
+  const ROWS = 5, COLS = 5, MINES = 5;
+  let grid = [];
+  let revealed = [];
+  let gameOver = false;
+
+  // Place mines
+  const positions = [];
+  for (let i = 0; i < ROWS * COLS; i++) positions.push(i);
+  for (let i = positions.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [positions[i], positions[j]] = [positions[j], positions[i]];
+  }
+  const mineSet = new Set(positions.slice(0, MINES));
+
+  for (let r = 0; r < ROWS; r++) {
+    grid[r] = [];
+    revealed[r] = [];
+    for (let c = 0; c < COLS; c++) {
+      grid[r][c] = mineSet.has(r * COLS + c) ? -1 : 0;
+      revealed[r][c] = false;
+    }
+  }
+
+  // Count adjacent mines
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      if (grid[r][c] === -1) continue;
+      let count = 0;
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+          const nr = r + dr, nc = c + dc;
+          if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && grid[nr][nc] === -1) count++;
+        }
+      }
+      grid[r][c] = count;
+    }
+  }
+
+  const MINE_COLORS = ['','#0000ff','#008000','#ff0000','#000080','#800000','#008080','#000','#808080'];
+
+  function buildGrid() {
+    const container = document.getElementById('minesweeper-grid');
+    if (!container) return;
+    container.innerHTML = '';
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const cell = document.createElement('button');
+        cell.className = 'mine-cell' + (revealed[r][c] ? ' revealed' : '');
+        if (revealed[r][c]) {
+          if (grid[r][c] === -1) {
+            cell.textContent = '\uD83D\uDCA3';
+            cell.classList.add('mine-hit');
+          } else if (grid[r][c] > 0) {
+            cell.textContent = grid[r][c];
+            cell.style.color = MINE_COLORS[grid[r][c]] || '#000';
+          }
+        }
+        if (!gameOver && !revealed[r][c]) {
+          const rr = r, cc = c;
+          cell.addEventListener('click', () => revealCell(rr, cc));
+        }
+        container.appendChild(cell);
+      }
+    }
+  }
+
+  function revealCell(r, c) {
+    if (gameOver || revealed[r][c]) return;
+    revealed[r][c] = true;
+
+    if (grid[r][c] === -1) {
+      gameOver = true;
+      // Reveal all mines
+      for (let rr = 0; rr < ROWS; rr++)
+        for (let cc = 0; cc < COLS; cc++)
+          if (grid[rr][cc] === -1) revealed[rr][cc] = true;
+      buildGrid();
+      const statusEl = document.getElementById('mine-status');
+      if (statusEl) statusEl.textContent = '\uD83D\uDCA5 You lose!';
+      saySpeech("Boom! \uD83D\uDCA5 Try again?", 4000, true);
+      return;
+    }
+
+    // Flood fill for zeros
+    if (grid[r][c] === 0) {
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+          const nr = r + dr, nc = c + dc;
+          if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && !revealed[nr][nc]) {
+            revealCell(nr, nc);
+          }
+        }
+      }
+    }
+
+    // Check win
+    let unrevealedNonMines = 0;
+    for (let rr = 0; rr < ROWS; rr++)
+      for (let cc = 0; cc < COLS; cc++)
+        if (!revealed[rr][cc] && grid[rr][cc] !== -1) unrevealedNonMines++;
+
+    buildGrid();
+
+    if (unrevealedNonMines === 0) {
+      gameOver = true;
+      const statusEl = document.getElementById('mine-status');
+      if (statusEl) statusEl.textContent = '\uD83C\uDF89 You win!';
+      saySpeech("You're a genius! \uD83C\uDF89", 4000, true);
+    }
+  }
+
+  openWindow('minesweeper', 'Minesweeper', ICONS.mine, `
+    <div style="display:flex;flex-direction:column;align-items:center;padding:8px">
+      <p id="mine-status" style="font-size:12px;font-weight:bold;margin-bottom:4px">Find the mines!</p>
+      <div id="minesweeper-grid"></div>
+      <button id="mine-reset" style="margin-top:8px;padding:3px 12px;font-family:inherit;font-size:11px;cursor:pointer;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff">New Game</button>
+    </div>
+  `, { width: 200, height: 220 });
+
+  buildGrid();
+  document.getElementById('mine-reset').addEventListener('click', () => {
+    closeWindow('minesweeper');
+    openMinesweeper();
+  });
+
+  saySpeech("Good luck \uD83D\uDCA3", 3000, true);
+}
+
 /* ─── Init ─── */
 export function initWin98() {
   initDesktopIcons();
@@ -1056,6 +1274,7 @@ export function initWin98() {
 
   initSystemTray();
   initScreensaver();
+  initBSOD();
 
   // Expose functions needed by inline onclick handlers in generated HTML
   window.openProjects = openProjects;
@@ -1064,4 +1283,6 @@ export function initWin98() {
   window.openGuestbook = openGuestbook;
   window.openProjectDetail = openProjectDetail;
   window.openShutdownDialog = openShutdownDialog;
+  window.openMinesweeper = openMinesweeper;
+  window.openFormatDisk = openFormatDisk;
 }
