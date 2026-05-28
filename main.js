@@ -129,10 +129,10 @@ initWin98();
 
 // Character anchor (foot position) in closeup.png natural pixels.
 // Calibrate with ?calibrate and copy the values from the panel.
-const CHAR_SCENE_ANCHOR = [1200, 950];
+const CHAR_SCENE_ANCHOR = [982, 1004];
 
 // Character visual height in closeup.png natural pixels.
-const CHAR_SCENE_HEIGHT = 520;
+const CHAR_SCENE_HEIGHT = 360;
 
 // Transparent padding fractions (normalised 0..1).
 // null = auto-detect via canvas scan; set manually for reliability.
@@ -144,7 +144,7 @@ let charPadFracBottom = 0;
 
 // Speech bubble offset from anchor in natural image pixels [dx, dy]
 // Negative Y = above the anchor point (near head)
-const BUBBLE_SCENE_OFFSET = [-80, -480];
+const BUBBLE_SCENE_OFFSET = [-220, -300]; // ~head height above anchor, to the left
 
 /**
  * Recompute character position and size from the scene coordinate system.
