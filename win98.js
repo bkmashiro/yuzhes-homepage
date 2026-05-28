@@ -640,11 +640,19 @@ function initStartMenu() {
         <img src="${ICONS.internet}" alt=""> Internet
       </div>
       <div class="start-menu-separator"></div>
+      <div class="start-menu-item" id="sm-calc"><img src="${ICONS.notepad}" alt=""> Calculator</div>
+      <div class="start-menu-item" id="sm-snake"><img src="${ICONS.mine}" alt=""> Snake</div>
+      <div class="start-menu-item" id="sm-terminal"><img src="${ICONS.myComputer}" alt=""> Command Prompt</div>
+      <div class="start-menu-separator"></div>
       <div class="start-menu-item" onclick="window.openShutdownDialog()">
         <img src="${ICONS.winlogo}" alt=""> Shut Down...
       </div>
     </div>
   `;
+
+  menu.querySelector('#sm-calc')?.addEventListener('click', () => { menu.classList.remove('open'); openCalculator(); });
+  menu.querySelector('#sm-snake')?.addEventListener('click', () => { menu.classList.remove('open'); openSnake(); });
+  menu.querySelector('#sm-terminal')?.addEventListener('click', () => { menu.classList.remove('open'); openTerminal(); });
 }
 
 /* ─── Clock ─── */
@@ -1537,6 +1545,266 @@ function openMinesweeper() {
   saySpeech("Good luck \uD83D\uDCA3", 3000, true);
 }
 
+/* ─── Calculator ─── */
+function openCalculator() {
+  const bodyHTML = `
+    <div style="padding:6px">
+      <div id="calc-disp" style="background:#fff;border:1px inset #808080;text-align:right;padding:3px 6px;font-size:16px;font-family:monospace;min-height:28px;margin-bottom:6px;word-break:break-all">0</div>
+      <div id="calc-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:3px"></div>
+    </div>
+  `;
+  openWindow('calculator', 'Calculator', ICONS.notepad, bodyHTML, { width: 220, height: 240 });
+
+  const disp = document.getElementById('calc-disp');
+  const grid = document.getElementById('calc-grid');
+  if (!disp || !grid) return;
+
+  let cur = '0', prev = null, op = null, waitNext = false, mem = 0;
+
+  const updateDisp = () => { disp.textContent = cur; };
+
+  const btn = (label, type='num') => {
+    const b = document.createElement('button');
+    b.textContent = label;
+    b.style.cssText = `background:${type==='op'?'#b0b0b0':'#c0c0c0'};border:2px solid;border-color:#fff #808080 #808080 #fff;font-size:11px;font-family:inherit;cursor:pointer;padding:3px;min-height:22px`;
+    b.addEventListener('mousedown', () => { b.style.borderColor='#808080 #fff #fff #808080'; });
+    b.addEventListener('mouseup', () => { b.style.borderColor='#fff #808080 #808080 #fff'; });
+    return b;
+  };
+
+  const rows = [
+    [['MC','mem'],['MR','mem'],['MS','mem'],['M+','mem']],
+    [['7'],['8'],['9'],['÷','op']],
+    [['4'],['5'],['6'],['×','op']],
+    [['1'],['2'],['3'],['-','op']],
+    [['0'],['±'],['.'],['+','op']],
+    [['C','op'],['CE','op'],['=','op'],['←','op']],
+  ];
+
+  rows.forEach(row => row.forEach(([label, type='num']) => {
+    const b = btn(label, type);
+    b.addEventListener('click', () => {
+      if ('0123456789'.includes(label)) {
+        if (waitNext || cur==='0') { cur=label; waitNext=false; }
+        else cur = cur.length < 12 ? cur+label : cur;
+      } else if (label==='.') {
+        if (waitNext) { cur='0.'; waitNext=false; }
+        else if (!cur.includes('.')) cur += '.';
+      } else if (label==='±') {
+        cur = cur.startsWith('-') ? cur.slice(1) : (cur==='0'?'0':'-'+cur);
+      } else if (label==='C') { cur='0'; prev=null; op=null; waitNext=false; }
+      else if (label==='CE') { cur='0'; }
+      else if (label==='←') { cur = cur.length>1 ? cur.slice(0,-1) : '0'; }
+      else if (['+','-','×','÷'].includes(label)) {
+        if (op && !waitNext) {
+          const a=parseFloat(prev), b=parseFloat(cur);
+          prev=String(op==='+'?a+b:op==='-'?a-b:op==='×'?a*b:b!==0?a/b:NaN);
+          cur=prev;
+        } else prev=cur;
+        op=label==='×'?'*':label==='÷'?'/':label;
+        waitNext=true;
+      } else if (label==='=') {
+        if (op && prev!==null) {
+          const a=parseFloat(prev), b=parseFloat(cur);
+          const r=op==='+'?a+b:op==='-'?a-b:op==='*'?a*b:b!==0?a/b:NaN;
+          cur = isNaN(r)?'Error':String(parseFloat(r.toFixed(10)));
+          prev=null; op=null; waitNext=true;
+        }
+      } else if (label==='MS') { mem=parseFloat(cur)||0; }
+      else if (label==='MR') { cur=String(mem); waitNext=false; }
+      else if (label==='MC') { mem=0; }
+      else if (label==='M+') { mem+=parseFloat(cur)||0; }
+      updateDisp();
+    });
+    grid.appendChild(b);
+  }));
+}
+
+/* ─── Snake ─── */
+function openSnake() {
+  openWindow('snake', 'Snake', ICONS.mine, `
+    <div style="text-align:center;padding:4px">
+      <canvas id="snake-canvas" width="220" height="220" style="display:block;margin:0 auto;background:#000;image-rendering:pixelated"></canvas>
+      <p id="snake-info" style="font-size:11px;margin-top:4px">Score: 0 | Arrow keys to play | Space to pause</p>
+    </div>
+  `, { width: 260, height: 280 });
+
+  const canvas = document.getElementById('snake-canvas');
+  const info = document.getElementById('snake-info');
+  if (!canvas) return;
+
+  const ctx = canvas.getContext('2d');
+  const CELL = 11, COLS = 20, ROWS = 20;
+  let snake, dir, nextDir, food, score, paused, dead, rafId;
+
+  function randFood() {
+    let pos;
+    do { pos = {x:Math.floor(Math.random()*COLS), y:Math.floor(Math.random()*ROWS)}; }
+    while (snake.some(s=>s.x===pos.x&&s.y===pos.y));
+    return pos;
+  }
+
+  function reset() {
+    snake=[{x:10,y:10},{x:9,y:10},{x:8,y:10}]; dir={x:1,y:0}; nextDir={x:1,y:0};
+    food=randFood(); score=0; paused=false; dead=false;
+    info.textContent='Score: 0 | Arrow keys | Space=pause';
+  }
+
+  function draw() {
+    ctx.fillStyle='#000'; ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle='#f00';
+    ctx.fillRect(food.x*CELL+1, food.y*CELL+1, CELL-2, CELL-2);
+    snake.forEach((s,i) => {
+      ctx.fillStyle = i===0?'#0f0':'#080';
+      ctx.fillRect(s.x*CELL+1, s.y*CELL+1, CELL-2, CELL-2);
+    });
+    if (dead) {
+      ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.fillStyle='#f00'; ctx.font='bold 14px monospace'; ctx.textAlign='center';
+      ctx.fillText('GAME OVER', canvas.width/2, canvas.height/2-8);
+      ctx.fillStyle='#fff'; ctx.font='11px monospace';
+      ctx.fillText(`Score: ${score}`, canvas.width/2, canvas.height/2+10);
+      ctx.fillText('Space to restart', canvas.width/2, canvas.height/2+26);
+    }
+  }
+
+  let lastTick=0;
+  function gameLoop(ts) {
+    rafId=requestAnimationFrame(gameLoop);
+    if (dead || paused) { draw(); return; }
+    if (ts-lastTick < 150) return;
+    lastTick=ts;
+    dir=nextDir;
+    const head={x:(snake[0].x+dir.x+COLS)%COLS, y:(snake[0].y+dir.y+ROWS)%ROWS};
+    if (snake.some(s=>s.x===head.x&&s.y===head.y)) {
+      dead=true;
+      saySpeech('Game over! 💀 Press Space to try again', 3500, true);
+      draw(); return;
+    }
+    snake.unshift(head);
+    if (head.x===food.x&&head.y===food.y) {
+      score++; food=randFood();
+      info.textContent=`Score: ${score} | Arrow keys | Space=pause`;
+      if (score===5) saySpeech('5 points already! 🐍', 2500, true);
+    } else snake.pop();
+    draw();
+  }
+
+  const keyHandler = e => {
+    if (!document.getElementById('win-snake')) { document.removeEventListener('keydown',keyHandler); return; }
+    if (e.key==='ArrowUp'&&dir.y===0) nextDir={x:0,y:-1};
+    else if (e.key==='ArrowDown'&&dir.y===0) nextDir={x:0,y:1};
+    else if (e.key==='ArrowLeft'&&dir.x===0) nextDir={x:-1,y:0};
+    else if (e.key==='ArrowRight'&&dir.x===0) nextDir={x:1,y:0};
+    else if (e.key===' ') {
+      if (dead) reset();
+      else { paused=!paused; info.textContent=paused?'PAUSED — Space to resume':`Score: ${score} | Arrow keys | Space=pause`; }
+      e.preventDefault();
+    }
+  };
+  document.addEventListener('keydown', keyHandler);
+
+  reset();
+  rafId=requestAnimationFrame(gameLoop);
+
+  const observer = new MutationObserver(() => {
+    if (!document.getElementById('win-snake')) { cancelAnimationFrame(rafId); document.removeEventListener('keydown',keyHandler); observer.disconnect(); }
+  });
+  observer.observe(document.getElementById('win98-desktop'), {childList:true, subtree:true});
+}
+
+/* ─── Terminal ─── */
+function openTerminal() {
+  openWindow('terminal', 'Command Prompt', ICONS.myComputer, `
+    <div style="background:#000;height:100%;display:flex;flex-direction:column;box-sizing:border-box">
+      <div id="term-out" style="background:#000;color:#c0c0c0;font-family:'Courier New',monospace;font-size:12px;flex:1;overflow-y:auto;padding:4px;white-space:pre-wrap"></div>
+      <div style="display:flex;background:#000;padding:2px 4px;border-top:1px solid #333">
+        <span style="color:#c0c0c0;font-family:'Courier New',monospace;font-size:12px;white-space:nowrap">C:\\&gt;&nbsp;</span>
+        <input id="term-in" style="flex:1;background:#000;color:#c0c0c0;border:none;outline:none;font-family:'Courier New',monospace;font-size:12px">
+      </div>
+    </div>
+  `, { width: 480, height: 300 });
+
+  const out = document.getElementById('term-out');
+  const inp = document.getElementById('term-in');
+  if (!out || !inp) return;
+
+  let termColor = '#c0c0c0';
+  const print = (text) => {
+    const line = document.createElement('div');
+    line.textContent = text;
+    line.style.color = termColor;
+    out.appendChild(line);
+    out.scrollTop = out.scrollHeight;
+  };
+
+  print('Microsoft(R) Windows 98');
+  print('(C)Copyright Microsoft Corp 1981-1999.');
+  print('');
+
+  const history = [];
+  let histIdx = -1;
+
+  inp.focus();
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      const cmd = inp.value.trim();
+      print(`C:\\> ${cmd}`);
+      inp.value = '';
+      if (cmd) { history.unshift(cmd); histIdx = -1; }
+      handleCommand(cmd.toLowerCase(), cmd);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (histIdx < history.length-1) inp.value = history[++histIdx];
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (histIdx > 0) inp.value = history[--histIdx]; else { histIdx=-1; inp.value=''; }
+    }
+  });
+
+  function handleCommand(cmdLow, cmdRaw) {
+    const parts = cmdRaw.split(/\s+/);
+    if (cmdLow === '') return;
+    else if (cmdLow === 'cls') { out.innerHTML = ''; }
+    else if (cmdLow === 'ver') { print('Windows 98 [Version 4.10.1998]'); }
+    else if (cmdLow === 'exit') { closeWindow('terminal'); }
+    else if (cmdLow.startsWith('echo ')) { print(cmdRaw.slice(5)); }
+    else if (cmdLow === 'echo') { print('ECHO is on.'); }
+    else if (cmdLow === 'dir') {
+      print(' Volume in drive C has no label.');
+      print(' Directory of C:\\');
+      print('');
+      const icons = Array.from(document.querySelectorAll('#desktop-icons .desktop-icon span')).map(s=>s.textContent);
+      icons.forEach(name => print(` 01/01/1998  12:00         <DIR>          ${name}`));
+      print('');
+      print(`        ${icons.length} File(s)     0 bytes`);
+    }
+    else if (cmdLow.startsWith('color')) {
+      const code = parts[1] || '07';
+      const colors = {'0a':'#00ff00','0b':'#00ffff','0c':'#ff0000','0e':'#ffff00','0f':'#ffffff','07':'#c0c0c0'};
+      termColor = colors[code] || '#c0c0c0';
+      print('');
+    }
+    else if (cmdLow === 'cd' || cmdLow.startsWith('cd ')) { print('C:\\'); }
+    else if (cmdLow === 'help') {
+      ['CLS     Clears the screen.','DIR     Displays a list of files.','ECHO    Displays messages.',
+       'VER     Displays Windows version.','COLOR   Sets console colors (e.g. COLOR 0A for green).',
+       'CD      Displays current directory.','FORMAT  Formats a disk (try FORMAT C:).',
+       'EXIT    Quits the command prompt.'].forEach(print);
+    }
+    else if (cmdLow === 'format c:' || cmdLow === 'format c:\\') {
+      closeWindow('terminal');
+      setTimeout(() => openFormatDisk(), 300);
+    }
+    else if (cmdLow === 'matrix') {
+      closeWindow('terminal');
+      setTimeout(() => startMatrixRain(), 300);
+    }
+    else { print(`'${parts[0]}' is not recognized as an internal or external command.`); }
+    print('');
+  }
+}
+
 /* ─── Init ─── */
 export function initWin98() {
   initDesktopIcons();
@@ -1561,4 +1829,7 @@ export function initWin98() {
   window.openShutdownDialog = openShutdownDialog;
   window.openMinesweeper = openMinesweeper;
   window.openFormatDisk = openFormatDisk;
+  window.openCalculator = openCalculator;
+  window.openSnake = openSnake;
+  window.openTerminal = openTerminal;
 }
