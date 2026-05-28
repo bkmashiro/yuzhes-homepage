@@ -144,7 +144,8 @@ let charPadFracBottom = 0;
 
 // Speech bubble offset from anchor in natural image pixels [dx, dy]
 // Negative Y = above the anchor point (near head)
-const BUBBLE_SCENE_OFFSET = [-180, -300]; // above anchor; tune X to align with character mouth
+// Speech bubble vertical offset from character top (fraction of opaque height, 0..1)
+const BUBBLE_TOP_FRAC = 0.1; // 0 = character top, 1 = character bottom
 
 /**
  * Recompute character position and size from the scene coordinate system.
@@ -192,12 +193,15 @@ function updateCharacterLayout() {
   character.style.width  = `${renderedW}px`;
   character.style.height = `${renderedH}px`;
 
-  // Speech bubble
+  // Speech bubble — right edge touches character's left edge, vertically near head
   if (speechBubble) {
-    const bubbleVpX = rect.left + (CHAR_SCENE_ANCHOR[0] + BUBBLE_SCENE_OFFSET[0]) * coverScale + offX;
-    const bubbleVpY = rect.top  + (CHAR_SCENE_ANCHOR[1] + BUBBLE_SCENE_OFFSET[1]) * coverScale + offY;
-    speechBubble.style.left = `${bubbleVpX}px`;
-    speechBubble.style.top  = `${bubbleVpY}px`;
+    const gap = 8; // px gap between bubble and character
+    const bubbleRight = left - gap;                    // character opaque left edge
+    const bubbleTop   = top + opaqueH * 0.1;          // ~top 10% of character height
+    speechBubble.style.right = 'auto';
+    const bubbleW = speechBubble.offsetWidth || 200; // 200 = max-width fallback
+    speechBubble.style.left  = `${bubbleRight - bubbleW}px`;
+    speechBubble.style.top   = `${bubbleTop}px`;
   }
 }
 
@@ -482,10 +486,12 @@ if (window.location.search.includes('calibrate')) {
     character.style.height = `${renderedH}px`;
 
     if (speechBubble) {
-      const bubbleVpX = rect.left + (calAnchor[0] + BUBBLE_SCENE_OFFSET[0]) * coverScale + offX;
-      const bubbleVpY = rect.top  + (calAnchor[1] + BUBBLE_SCENE_OFFSET[1]) * coverScale + offY;
-      speechBubble.style.left = `${bubbleVpX}px`;
-      speechBubble.style.top  = `${bubbleVpY}px`;
+      const gap = 8;
+      const bubbleRight = left - gap;
+      const bubbleTop   = top + opaqueH * 0.1;
+      const bubbleW = speechBubble.offsetWidth || 200;
+      speechBubble.style.left = `${bubbleRight - bubbleW}px`;
+      speechBubble.style.top  = `${bubbleTop}px`;
     }
   };
 
