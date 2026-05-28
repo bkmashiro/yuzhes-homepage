@@ -498,6 +498,43 @@ html, body {
   background: linear-gradient(135deg, transparent 50%, rgba(0,255,200,0.3) 50%);
 }
 
+/* ─── System tray ─── */
+#system-tray {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 4px;
+  border-left: 1px inset #808080;
+  margin-right: 4px;
+}
+
+/* ─── Win98 radio buttons ─── */
+.win98-radio {
+  margin: 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+/* ─── Screensaver ─── */
+#screensaver {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  z-index: 9000;
+  cursor: pointer;
+  overflow: hidden;
+}
+#screensaver-text {
+  position: absolute;
+  font-size: 14px;
+  font-weight: bold;
+  white-space: nowrap;
+  user-select: none;
+}
+
 /* ─── Calibration panel ─── */
 #cal-panel {
   position: fixed;

@@ -493,7 +493,7 @@ function initStartMenu() {
         <img src="${ICONS.internet}" alt=""> Internet
       </div>
       <div class="start-menu-separator"></div>
-      <div class="start-menu-item" onclick="document.getElementById('start-menu').classList.remove('open')">
+      <div class="start-menu-item" onclick="window.openShutdownDialog()">
         <img src="${ICONS.winlogo}" alt=""> Shut Down...
       </div>
     </div>
@@ -901,6 +901,148 @@ function initIdleEasterEgg() {
   }
 }
 
+/* ─── System tray ─── */
+function initSystemTray() {
+  const volumeBtn = document.getElementById('tray-volume');
+  const networkBtn = document.getElementById('tray-network');
+  let muted = false;
+
+  if (volumeBtn) {
+    volumeBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      muted = !muted;
+      if (muted) {
+        saySpeech("Shh, I'm working... \uD83E\uDD2B", 4000, true);
+      } else {
+        saySpeech("Volume: 100% \uD83D\uDD0A", 3000, true);
+      }
+    });
+  }
+
+  if (networkBtn) {
+    networkBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      saySpeech("Connected to: localhost \uD83C\uDF10", 3000, true);
+    });
+  }
+}
+
+/* ─── Shutdown dialog ─── */
+function openShutdownDialog() {
+  document.getElementById('start-menu').classList.remove('open');
+  openWindow('shutdown', 'Shut Down Windows', ICONS.winlogo, `
+    <div style="padding:8px">
+      <p style="font-size:12px;margin-bottom:12px">What do you want the computer to do?</p>
+      <label class="win98-radio"><input type="radio" name="shutdown-opt" value="shutdown" checked> Shut down</label>
+      <label class="win98-radio"><input type="radio" name="shutdown-opt" value="restart"> Restart</label>
+      <label class="win98-radio"><input type="radio" name="shutdown-opt" value="standby"> Stand by</label>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+        <button id="shutdown-ok" style="padding:4px 16px;font-family:inherit;font-size:12px;cursor:pointer;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff">OK</button>
+        <button id="shutdown-cancel" style="padding:4px 16px;font-family:inherit;font-size:12px;cursor:pointer;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff">Cancel</button>
+      </div>
+    </div>
+  `, { width: 280, height: 180 });
+
+  document.getElementById('shutdown-cancel').onclick = () => closeWindow('shutdown');
+  document.getElementById('shutdown-ok').onclick = () => {
+    const sel = document.querySelector('input[name="shutdown-opt"]:checked');
+    const val = sel ? sel.value : 'shutdown';
+    closeWindow('shutdown');
+    if (val === 'shutdown') {
+      const overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;inset:0;background:#000;z-index:999999;display:flex;align-items:center;justify-content:center';
+      overlay.innerHTML = '<p style="color:#fff;font-family:\'Courier New\',monospace;font-size:14px;text-align:center">It is now safe to turn off your computer.</p>';
+      document.body.appendChild(overlay);
+    } else if (val === 'restart') {
+      const overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;inset:0;background:#000;z-index:999999;display:flex;align-items:center;justify-content:center';
+      overlay.innerHTML = '<p style="color:#fff;font-family:\'Courier New\',monospace;font-size:14px;text-align:center">Restarting...</p>';
+      document.body.appendChild(overlay);
+      setTimeout(() => location.reload(), 2000);
+    } else if (val === 'standby') {
+      saySpeech("Zzz... \uD83D\uDCA4", 6000, true);
+    }
+  };
+}
+
+/* ─── Idle screensaver ─── */
+function initScreensaver() {
+  const desktop = document.getElementById('win98-desktop');
+  if (!desktop) return;
+
+  let screensaverTimer = null;
+  let screensaverActive = false;
+  const SCREENSAVER_MS = 90000;
+
+  function startScreensaver() {
+    if (screensaverActive) return;
+    screensaverActive = true;
+
+    const saver = document.createElement('div');
+    saver.id = 'screensaver';
+
+    const text = document.createElement('div');
+    text.id = 'screensaver-text';
+    text.textContent = 'yuzhes.exe';
+    saver.appendChild(text);
+
+    desktop.appendChild(saver);
+
+    const colors = ['#ff0', '#0ff', '#f0f', '#0f0', '#f80', '#80f', '#fff'];
+    let x = 80, y = 80, vx = 2, vy = 1.5;
+    let rafId;
+
+    function animate() {
+      const sw = saver.clientWidth;
+      const sh = saver.clientHeight;
+      const tw = text.offsetWidth;
+      const th = text.offsetHeight;
+
+      x += vx;
+      y += vy;
+
+      let bounced = false;
+      if (x < 0) { x = 0; vx = Math.abs(vx); bounced = true; }
+      if (x + tw > sw) { x = sw - tw; vx = -Math.abs(vx); bounced = true; }
+      if (y < 0) { y = 0; vy = Math.abs(vy); bounced = true; }
+      if (y + th > sh) { y = sh - th; vy = -Math.abs(vy); bounced = true; }
+
+      if (bounced) {
+        text.style.color = colors[Math.floor(Math.random() * colors.length)];
+      }
+
+      text.style.left = `${x}px`;
+      text.style.top  = `${y}px`;
+      rafId = requestAnimationFrame(animate);
+    }
+    text.style.color = colors[0];
+    animate();
+
+    function dismiss() {
+      screensaverActive = false;
+      cancelAnimationFrame(rafId);
+      saver.remove();
+      saver.removeEventListener('click', dismiss);
+      saver.removeEventListener('mousemove', dismiss);
+      resetScreensaverTimer();
+    }
+
+    saver.addEventListener('click', dismiss);
+    saver.addEventListener('mousemove', dismiss);
+  }
+
+  function resetScreensaverTimer() {
+    clearTimeout(screensaverTimer);
+    if (!screensaverActive) {
+      screensaverTimer = setTimeout(startScreensaver, SCREENSAVER_MS);
+    }
+  }
+
+  desktop.addEventListener('mousemove', resetScreensaverTimer);
+  desktop.addEventListener('mousedown', resetScreensaverTimer);
+  resetScreensaverTimer();
+}
+
 /* ─── Init ─── */
 export function initWin98() {
   initDesktopIcons();
@@ -912,10 +1054,14 @@ export function initWin98() {
   initStartButtonEasterEgg();
   initIdleEasterEgg();
 
+  initSystemTray();
+  initScreensaver();
+
   // Expose functions needed by inline onclick handlers in generated HTML
   window.openProjects = openProjects;
   window.openAbout = openAbout;
   window.openInternet = openInternet;
   window.openGuestbook = openGuestbook;
   window.openProjectDetail = openProjectDetail;
+  window.openShutdownDialog = openShutdownDialog;
 }
