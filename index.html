@@ -18,12 +18,11 @@
   <div id="scene-closeup" class="scene">
     <img id="closeup-img" src="assets/closeup.png" alt="CRT monitor" />
 
-    <!-- Screen content div — will be transformed via matrix3d to match screen corners -->
+    <!-- Screen content — transformed via matrix3d to match CRT screen corners -->
     <div id="screen-content">
-      <!-- Win98-style desktop goes here -->
       <div id="win98-desktop">
         <div id="desktop-icons">
-          <!-- icons injected by JS -->
+          <!-- icons injected by win98.js -->
         </div>
         <div id="taskbar">
           <button id="start-btn">
@@ -36,8 +35,8 @@
       </div>
     </div>
 
-    <!-- CRT overlay effects -->
-    <div id="crt-overlay"></div>
+    <!-- CRT overlay effects (non-interactive, above screen-content) -->
+    <div id="crt-effects"></div>
 
     <!-- Character sprite -->
     <img id="character" src="assets/anime-girl.png" alt="character" />
@@ -45,7 +44,6 @@
   </div>
 
   <script src="homography.js"></script>
-  <script src="warp.js"></script>
   <script src="win98.js"></script>
   <script src="main.js"></script>
 </body>

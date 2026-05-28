@@ -6,7 +6,7 @@
  * Reference: https://franklinta.com/2014/09/08/computing-css-3d-transforms/
  */
 
-/* ─── 3×3 matrix helpers (row-major) ─── */
+/* ─── 3x3 matrix helpers (row-major) ─── */
 function mat3adj(m) {
   return [
     m[4]*m[8]-m[5]*m[7],  m[2]*m[7]-m[1]*m[8],  m[1]*m[5]-m[2]*m[4],
@@ -31,7 +31,7 @@ function mat3multV(m, v) {
 }
 
 /**
- * Returns the projective matrix (3×3) that maps 4 points in src
+ * Returns the projective matrix (3x3) that maps 4 points in src
  * to the corresponding 4 points in dst.
  * Both are [[x0,y0],[x1,y1],[x2,y2],[x3,y3]] in order TL,TR,BR,BL.
  */
@@ -52,18 +52,10 @@ function computeHomography(src, dst) {
  */
 function toCSSMatrix3d(src, dst) {
   const H = computeHomography(src, dst);
-  // Normalize
   const s = H[8];
   const h = H.map(v => v / s);
 
-  // Embed 3×3 projective into 4×4 column-major CSS matrix:
-  //   col0      col1      col2   col3
-  //  [h[0]     h[1]       0     h[2] ]   row 0
-  //  [h[3]     h[4]       0     h[5] ]   row 1
-  //  [ 0        0         1      0   ]   row 2
-  //  [h[6]     h[7]       0     h[8] ]   row 3
-  //
-  // CSS matrix3d(c0r0,c0r1,c0r2,c0r3, c1r0,...) = column-major
+  // Embed 3x3 projective into 4x4 column-major CSS matrix
   const m = [
     h[0], h[3], 0, h[6],   // column 0
     h[1], h[4], 0, h[7],   // column 1
@@ -73,17 +65,16 @@ function toCSSMatrix3d(src, dst) {
   return `matrix3d(${m.map(v => v.toFixed(10)).join(',')})`;
 }
 
-// Extra pixels added around the element so outward-bowing clip-path
-// has real content to reveal. Must be >= max expected |edgeMids|.
-const CLIP_EXPAND = 80;
+// Extra pixels around the element so outward-bowing clip-path
+// has real content to reveal. Must be >= max expected |edgeMids| in rendered px.
+const CLIP_EXPAND = 120;
 
 /**
  * Build clip-path polygon for CRT curved edges.
  * Coordinate origin is the EXPANDED element's top-left.
- * The actual screen rect sits at (E, E) → (E+w, E+h) inside the element.
+ * The actual screen rect sits at (E, E) -> (E+w, E+h) inside the element.
  *
  * Positive mids[i] = edge bows OUTWARD (away from screen centre).
- * Negative mids[i] = edge bows INWARD.
  * Bezier bulge: 4*m*t*(1-t), peaks at t=0.5.
  */
 function buildClipPath(w, h, mids) {
@@ -92,22 +83,23 @@ function buildClipPath(w, h, mids) {
   const N = 20;
   const b = (m, t) => 4 * m * t * (1 - t);
   const pts = [];
-  // Top edge: (E,E) → (E+w, E), outward = upward = subtract bulge
+
+  // Top edge: (E,E) -> (E+w, E), outward = upward = subtract bulge
   for (let i = 0; i <= N; i++) {
     const t = i / N;
     pts.push(`${(E + t * w).toFixed(1)}px ${(E - b(mTop, t)).toFixed(1)}px`);
   }
-  // Right edge: (E+w, E) → (E+w, E+h), outward = rightward = add bulge
+  // Right edge: (E+w, E) -> (E+w, E+h), outward = rightward = add bulge
   for (let i = 1; i <= N; i++) {
     const t = i / N;
     pts.push(`${(E + w + b(mRight, t)).toFixed(1)}px ${(E + t * h).toFixed(1)}px`);
   }
-  // Bottom edge: (E+w, E+h) → (E, E+h), outward = downward = add bulge
+  // Bottom edge: (E+w, E+h) -> (E, E+h), outward = downward = add bulge
   for (let i = 1; i <= N; i++) {
     const t = i / N;
     pts.push(`${(E + (1 - t) * w).toFixed(1)}px ${(E + h + b(mBottom, t)).toFixed(1)}px`);
   }
-  // Left edge: (E, E+h) → (E, E), outward = leftward = subtract bulge
+  // Left edge: (E, E+h) -> (E, E), outward = leftward = subtract bulge
   for (let i = 1; i < N; i++) {
     const t = i / N;
     pts.push(`${(E - b(mLeft, t)).toFixed(1)}px ${(E + (1 - t) * h).toFixed(1)}px`);
@@ -116,13 +108,24 @@ function buildClipPath(w, h, mids) {
 }
 
 /**
+ * Compute object-fit:cover layout info for the closeup image.
+ * Returns { coverScale, offX, offY } so that a point at natural px [nx, ny]
+ * maps to container-relative px [nx * coverScale + offX, ny * coverScale + offY].
+ */
+function getCoverInfo(containerRect, imgW, imgH) {
+  const coverScale = Math.max(containerRect.width / imgW, containerRect.height / imgH);
+  const offX = (containerRect.width  - imgW * coverScale) / 2;
+  const offY = (containerRect.height - imgH * coverScale) / 2;
+  return { coverScale, offX, offY };
+}
+
+/**
  * Apply the homography + curved clip-path to #screen-content.
  *
- * @param {number[][]} corners  4×2 [x,y] in closeup natural px, order TL TR BR BL
+ * @param {number[][]} corners  4x2 [x,y] in closeup natural px, order TL TR BR BL
  * @param {number}     imgW     Natural width of closeup image
  * @param {number}     imgH     Natural height of closeup image
- * @param {number[]}   edgeMids [top,right,bottom,left] offsets in natural px.
- *                              Positive = outward bow. Negative = inward.
+ * @param {number[]}   edgeMids [top,right,bottom,left] offsets in natural px
  */
 function applyScreenTransform(corners, imgW, imgH, edgeMids = [0, 0, 0, 0]) {
   const container = document.getElementById('scene-closeup');
@@ -130,25 +133,20 @@ function applyScreenTransform(corners, imgW, imgH, edgeMids = [0, 0, 0, 0]) {
   const desktop   = document.getElementById('win98-desktop');
 
   const rect = container.getBoundingClientRect();
+  const { coverScale, offX, offY } = getCoverInfo(rect, imgW, imgH);
 
-  // object-fit: cover uses a UNIFORM scale = max(containerW/imgW, containerH/imgH),
-  // then centres the image. Using separate scaleX/scaleY is wrong and breaks on resize.
-  const coverScale = Math.max(rect.width / imgW, rect.height / imgH);
-  const offX = (rect.width  - imgW * coverScale) / 2;
-  const offY = (rect.height - imgH * coverScale) / 2;
-
-  // Convert image-natural px → container-relative rendered px
+  // Convert image-natural px -> container-relative rendered px
   const dst = corners.map(([x, y]) => [
     x * coverScale + offX,
     y * coverScale + offY,
   ]);
 
-  // Screen dimensions in rendered px
+  // Screen dimensions in rendered px (average of top/bottom width, left/right height)
   const w = Math.hypot(dst[1][0]-dst[0][0], dst[1][1]-dst[0][1]);
   const h = Math.hypot(dst[3][0]-dst[0][0], dst[3][1]-dst[0][1]);
   const E = CLIP_EXPAND;
 
-  // Element is (w+2E) × (h+2E); screen rect sits at (E,E) inside
+  // Element is (w+2E) x (h+2E); screen rect sits at (E,E) inside
   screenEl.style.width  = `${w + 2 * E}px`;
   screenEl.style.height = `${h + 2 * E}px`;
   screenEl.style.transformOrigin = '0 0';
@@ -157,10 +155,9 @@ function applyScreenTransform(corners, imgW, imgH, edgeMids = [0, 0, 0, 0]) {
   const src = [[E, E], [E + w, E], [E + w, E + h], [E, E + h]];
   screenEl.style.transform = toCSSMatrix3d(src, dst);
 
-  // screen-content background fills the expand area so outward-bowing
-  // clip regions show the desktop colour instead of transparency
+  // Fill expand area with desktop colour so outward-bowing edges look correct
   screenEl.style.background = '#008080';
-  screenEl.style.overflow   = 'visible'; // don't clip the expand area
+  screenEl.style.overflow   = 'visible';
 
   // Win98 desktop fills only the actual screen area
   if (desktop) {
@@ -171,31 +168,21 @@ function applyScreenTransform(corners, imgW, imgH, edgeMids = [0, 0, 0, 0]) {
     desktop.style.height = `${h}px`;
   }
 
-  // Scale mids from image-natural to rendered px (uniform coverScale)
-  const mids = [
-    edgeMids[0] * coverScale,
-    edgeMids[1] * coverScale,
-    edgeMids[2] * coverScale,
-    edgeMids[3] * coverScale,
-  ];
+  // Scale edge mids from image-natural to rendered px (uniform coverScale)
+  const mids = edgeMids.map(m => m * coverScale);
   screenEl.style.clipPath = buildClipPath(w, h, mids);
-
-  // Keep warp filter in sync — must run AFTER win98-desktop dimensions are set
-  if (typeof applyCRTWarp === 'function') applyCRTWarp();
 }
 
-/** One ResizeObserver watches #scene-closeup and re-applies the transform.
- *  ResizeObserver fires after layout is settled, giving correct getBoundingClientRect()
- *  values with no debounce needed. Registered once on first initScreenTransform call.
- */
+/** ResizeObserver watches #scene-closeup and re-applies the transform.
+ *  Fires after layout is settled, giving correct getBoundingClientRect() values. */
 let _screenResizeObserver = null;
 
-/** Public entry point. Call once the closeup scene is active. */
+/** Public entry point. Call once the closeup image is loaded. */
 function initScreenTransform(corners, imgW, imgH, edgeMids = [0, 0, 0, 0]) {
   window._screenState = [corners, imgW, imgH, edgeMids];
   applyScreenTransform(corners, imgW, imgH, edgeMids);
 
-  // Register ResizeObserver once — fires after layout, giving reliable rect values
+  // Register ResizeObserver once
   if (!_screenResizeObserver) {
     _screenResizeObserver = new ResizeObserver(() => {
       if (window._screenState) applyScreenTransform(...window._screenState);

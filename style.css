@@ -21,7 +21,14 @@ html, body {
   pointer-events: auto;
 }
 
-#scene-wide img,
+/* Wide scene image — specific selector, not generic img */
+#wide-img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Closeup scene background image — specific ID selector */
 #closeup-img {
   width: 100%; height: 100%;
   object-fit: cover;
@@ -47,41 +54,19 @@ html, body {
   50% { opacity: 1; }
 }
 
-/* ─── Zoom animation overlay ─── */
-#zoom-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  pointer-events: none;
-  opacity: 0;
-}
-#zoom-overlay img {
-  width: 100%; height: 100%;
-  object-fit: cover;
-}
-#zoom-overlay.zooming {
-  pointer-events: auto;
-  animation: zoomIn 1.1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-@keyframes zoomIn {
-  0%   { opacity: 1; transform: scale(1); }
-  60%  { opacity: 1; transform: scale(3.5) translate(var(--tx), var(--ty)); }
-  100% { opacity: 0; transform: scale(3.5) translate(var(--tx), var(--ty)); }
-}
-
 /* ─── Screen content (overlaid on CRT) ─── */
 #screen-content {
   position: absolute;
   top: 0; left: 0;
   /* width/height/transform/clip-path set entirely by homography.js */
   transform-origin: 0 0;
-  overflow: visible; /* clip-path handles clipping; visible lets CLIP_EXPAND bleed show */
+  overflow: visible; /* clip-path handles clipping; visible lets CLIP_EXPAND work */
   pointer-events: auto;
 }
 
 /* ─── Win98 Desktop ─── */
+/* position/left/top/width/height set entirely by homography.js — do NOT set width/height here */
 #win98-desktop {
-  /* position/left/top/width/height set entirely by homography.js */
   position: absolute;
   background: #008080;
   overflow: hidden;
@@ -328,8 +313,8 @@ html, body {
   padding: 8px;
 }
 
-/* ─── CRT overlay ─── */
-#crt-overlay {
+/* ─── CRT effects overlay (non-interactive) ─── */
+#crt-effects {
   position: absolute;
   inset: 0;
   pointer-events: none;
@@ -342,8 +327,10 @@ html, body {
     rgba(0,0,0,0.07) 2px,
     rgba(0,0,0,0.07) 4px
   );
-  /* Screen glow tint */
-  box-shadow: inset 0 0 80px rgba(0, 200, 100, 0.04);
+  /* Screen glow / vignette */
+  box-shadow:
+    inset 0 0 80px rgba(0, 200, 100, 0.04),
+    inset 0 0 200px rgba(0, 0, 0, 0.15);
 }
 
 /* ─── Anime character ─── */
@@ -392,4 +379,18 @@ html, body {
 #speech-bubble.visible {
   opacity: 1;
   transform: translateY(0) scale(1);
+}
+
+/* ─── Calibration panel ─── */
+#cal-panel {
+  position: fixed;
+  bottom: 12px; left: 12px;
+  z-index: 9999;
+  background: rgba(0,0,0,0.82);
+  color: #fff;
+  font: 12px/1.5 monospace;
+  padding: 12px 16px;
+  border-radius: 8px;
+  pointer-events: none;
+  max-width: 340px;
 }
