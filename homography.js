@@ -84,24 +84,38 @@ function toCSSMatrix3d(src, dst) {
  *                           the edge curves toward the viewer, use negative).
  *                           CRT screens bow slightly inward → negative values.
  */
+/**
+ * Build clip-path polygon approximating curved CRT screen edges.
+ * Positive mids = edge bows INWARD (toward screen centre).
+ * Uses polygon() with N segments per edge — better compat than path().
+ * Bezier bulge formula: offset = 4*m*t*(1-t), max at t=0.5.
+ */
 function buildClipPath(w, h, mids) {
   const [mTop, mRight, mBottom, mLeft] = mids;
-  // Positive values bow the edge INWARD (toward the screen centre).
-  // This is correct for CRT screens whose edges curve inward.
-  // Control point is pushed toward the centre by `m` pixels:
-  //   top    → control point at (w/2,  mTop)     (positive y = down = inward)
-  //   right  → control point at (w-mRight, h/2)  (subtract = leftward = inward)
-  //   bottom → control point at (w/2, h-mBottom) (subtract = upward = inward)
-  //   left   → control point at (mLeft, h/2)     (positive x = rightward = inward)
-  const d = [
-    `M 0 0`,
-    `Q ${w / 2} ${mTop}       ${w} 0`,
-    `Q ${w - mRight} ${h / 2} ${w} ${h}`,
-    `Q ${w / 2} ${h - mBottom} 0 ${h}`,
-    `Q ${mLeft} ${h / 2}      0 0`,
-    `Z`,
-  ].join(' ');
-  return `path('${d}')`;
+  const N = 20;
+  const b = (m, t) => 4 * m * t * (1 - t);
+  const pts = [];
+  // Top: left→right, bows down (inward)
+  for (let i = 0; i <= N; i++) {
+    const t = i / N;
+    pts.push(`${(t * w).toFixed(2)}px ${b(mTop, t).toFixed(2)}px`);
+  }
+  // Right: top→bottom, bows left (inward)
+  for (let i = 1; i <= N; i++) {
+    const t = i / N;
+    pts.push(`${(w - b(mRight, t)).toFixed(2)}px ${(t * h).toFixed(2)}px`);
+  }
+  // Bottom: right→left, bows up (inward)
+  for (let i = 1; i <= N; i++) {
+    const t = i / N;
+    pts.push(`${((1 - t) * w).toFixed(2)}px ${(h - b(mBottom, t)).toFixed(2)}px`);
+  }
+  // Left: bottom→top, bows right (inward)
+  for (let i = 1; i < N; i++) {
+    const t = i / N;
+    pts.push(`${b(mLeft, t).toFixed(2)}px ${((1 - t) * h).toFixed(2)}px`);
+  }
+  return `polygon(${pts.join(', ')})`;
 }
 
 /**
