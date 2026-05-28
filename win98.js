@@ -728,6 +728,56 @@ function initDesktopIcons() {
 
 /* ─── Start-logo set via inline SVG data URI ─── */
 
+/* ─── Notepad (persistent) ─── */
+function openNotepadPersist() {
+  openWindow('notepad-persist', 'Untitled — Notepad', ICONS.notepad, `
+    <div style="display:flex;flex-direction:column;height:100%;box-sizing:border-box">
+      <div style="background:#c0c0c0;border-bottom:1px solid #808080;padding:2px 4px;font-size:11px;display:flex;gap:8px">
+        <span style="cursor:pointer">File</span><span style="cursor:pointer">Edit</span><span style="cursor:pointer">Format</span><span style="cursor:pointer">Help</span>
+      </div>
+      <textarea id="notepad-area" style="flex:1;resize:none;border:none;border:1px inset #808080;font-family:'Courier New',monospace;font-size:12px;padding:4px;box-sizing:border-box;outline:none"></textarea>
+    </div>
+  `, { width: 360, height: 280 });
+}
+
+/* ─── Delete System32 ─── */
+function openDeleteSystem32() {
+  openWindow('del-sys32', 'Deleting System32', ICONS.myComputer, `
+    <div style="padding:16px;font-size:12px">
+      <p id="sys32-status">Initializing...</p>
+      <div style="margin-top:8px;background:#fff;border:1px inset #808080;height:18px;position:relative">
+        <div id="sys32-bar" style="height:100%;width:0%;background:#000080;transition:width 0.08s linear"></div>
+      </div>
+      <p id="sys32-pct" style="margin-top:4px;text-align:right;font-family:monospace">0%</p>
+    </div>
+  `, { width: 320, height: 150 });
+
+  let pct = 0;
+  const bar = document.getElementById('sys32-bar');
+  const statusEl = document.getElementById('sys32-status');
+  const pctEl = document.getElementById('sys32-pct');
+
+  const files = ['ntoskrnl.exe','hal.dll','kernel32.dll','user32.dll','shell32.dll','gdi32.dll'];
+  let fileIdx = 0;
+
+  const timer = setInterval(() => {
+    if (pct < 99) {
+      pct = Math.min(99, pct + (Math.random() * 3));
+      if (bar) bar.style.width = `${pct}%`;
+      if (pctEl) pctEl.textContent = `${Math.floor(pct)}%`;
+      if (statusEl) statusEl.textContent = `Deleting ${files[Math.floor(fileIdx++ / 8) % files.length]}...`;
+    } else {
+      clearInterval(timer);
+      setTimeout(() => {
+        if (bar) { bar.style.background = '#c00000'; bar.style.width = '100%'; }
+        if (statusEl) statusEl.innerHTML = '<b style="color:red">⛔ Access Denied:</b> Nice try. 😏';
+        if (pctEl) pctEl.textContent = 'DENIED';
+        saySpeech('Nice try, hacker 😈', 4000, true);
+      }, 800);
+    }
+  }, 100);
+}
+
 /* ─── Right-click context menus ─── */
 let activeContextMenu = null;
 
@@ -873,24 +923,77 @@ function initContextMenus() {
       // Desktop background context menu
       showContextMenu(e.clientX, e.clientY, [
         { label: 'Arrange Icons', sub: [
-          { label: 'by Name', action: () => saySpeech("My icons were already perfect...") },
+          { label: 'by Name', action: () => {
+            const icons = Array.from(document.querySelectorAll('#desktop-icons .desktop-icon'));
+            icons.sort((a, b) => a.querySelector('span').textContent.localeCompare(b.querySelector('span').textContent));
+            icons.forEach((el, i) => {
+              el.style.transition = 'left 0.3s ease, top 0.3s ease';
+              el.style.left = '10px';
+              el.style.top = `${10 + i * 90}px`;
+              setTimeout(() => { el.style.transition = ''; }, 400);
+            });
+            saySpeech('Arranged! ✨', 2500);
+          }},
           { label: 'by Type' },
           { label: 'by Size' },
           { label: 'by Date' },
           '---',
           { label: 'Auto Arrange' },
         ]},
-        { label: 'Refresh' },
+        { label: 'Refresh', action: () => {
+          const desktop = document.getElementById('win98-desktop');
+          desktop.style.transition = 'opacity 0.08s';
+          desktop.style.opacity = '0.5';
+          setTimeout(() => { desktop.style.opacity = '1'; setTimeout(() => { desktop.style.transition = ''; }, 100); }, 150);
+          saySpeech('Refreshed! ✨', 2000);
+        }},
         '---',
         { label: 'New', sub: [
-          { label: 'Folder' },
+          { label: 'Folder', action: () => {
+            const container = document.getElementById('desktop-icons');
+            const el = document.createElement('div');
+            el.className = 'desktop-icon';
+            el.innerHTML = `<img src="${ICONS.folder}" alt=""><span contenteditable="false">New Folder</span>`;
+            el.style.left = `${20 + Math.random() * 60}px`;
+            el.style.top  = `${100 + Math.random() * 100}px`;
+            container.appendChild(el);
+            let dragStartX, dragStartY, iconStartLeft, iconStartTop, hasMoved;
+            el.addEventListener('mousedown', e => {
+              e.preventDefault();
+              hasMoved = false;
+              const toDesktop = window._viewportToDesktop || ((cx,cy)=>[cx,cy]);
+              const [dsx,dsy] = toDesktop(e.clientX, e.clientY);
+              dragStartX=dsx; dragStartY=dsy;
+              iconStartLeft=parseInt(el.style.left)||0; iconStartTop=parseInt(el.style.top)||0;
+              function onMove(ev) {
+                const [dcx,dcy] = toDesktop(ev.clientX,ev.clientY);
+                const dx=dcx-dragStartX, dy=dcy-dragStartY;
+                if (Math.abs(dx)>5||Math.abs(dy)>5) hasMoved=true;
+                if (hasMoved) { el.style.left=`${iconStartLeft+dx}px`; el.style.top=`${iconStartTop+dy}px`; }
+              }
+              function onUp() {
+                document.removeEventListener('mousemove',onMove); document.removeEventListener('mouseup',onUp);
+              }
+              document.addEventListener('mousemove',onMove); document.addEventListener('mouseup',onUp);
+            });
+            el.addEventListener('dblclick', () => {
+              const span = el.querySelector('span');
+              span.contentEditable = 'true';
+              span.focus();
+              const sel = window.getSelection();
+              sel.selectAllChildren(span);
+              span.addEventListener('blur', () => { span.contentEditable = 'false'; }, {once:true});
+              span.addEventListener('keydown', e => { if (e.key==='Enter') { e.preventDefault(); span.blur(); }}, {once:true});
+            });
+          }},
           { label: 'Shortcut' },
           '---',
-          { label: 'Text Document' },
+          { label: 'Text Document', action: () => openNotepadPersist() },
           { label: 'Bitmap Image' },
         ]},
         '---',
         { label: 'Format C:\\...', action: openFormatDisk },
+        { label: 'Delete System32', action: openDeleteSystem32 },
         '---',
         {
           label: 'Properties',
