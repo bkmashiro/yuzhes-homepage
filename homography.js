@@ -73,47 +73,44 @@ function toCSSMatrix3d(src, dst) {
   return `matrix3d(${m.map(v => v.toFixed(10)).join(',')})`;
 }
 
+// Extra pixels added around the element so outward-bowing clip-path
+// has real content to reveal. Must be >= max expected |edgeMids|.
+const CLIP_EXPAND = 80;
+
 /**
- * Build a quadratic-bezier SVG clip-path for the CRT screen shape.
+ * Build clip-path polygon for CRT curved edges.
+ * Coordinate origin is the EXPANDED element's top-left.
+ * The actual screen rect sits at (E, E) → (E+w, E+h) inside the element.
  *
- * @param {number}   w       Element width (px)
- * @param {number}   h       Element height (px)
- * @param {number[]} mids    [top, right, bottom, left] midpoint offsets in
- *                           element-local px.  Positive = bow outward from
- *                           the quad centre (i.e. inward on screen means
- *                           the edge curves toward the viewer, use negative).
- *                           CRT screens bow slightly inward → negative values.
- */
-/**
- * Build clip-path polygon approximating curved CRT screen edges.
- * Positive mids = edge bows INWARD (toward screen centre).
- * Uses polygon() with N segments per edge — better compat than path().
- * Bezier bulge formula: offset = 4*m*t*(1-t), max at t=0.5.
+ * Positive mids[i] = edge bows OUTWARD (away from screen centre).
+ * Negative mids[i] = edge bows INWARD.
+ * Bezier bulge: 4*m*t*(1-t), peaks at t=0.5.
  */
 function buildClipPath(w, h, mids) {
   const [mTop, mRight, mBottom, mLeft] = mids;
+  const E = CLIP_EXPAND;
   const N = 20;
   const b = (m, t) => 4 * m * t * (1 - t);
   const pts = [];
-  // Top: left→right, bows down (inward)
+  // Top edge: (E,E) → (E+w, E), outward = upward = subtract bulge
   for (let i = 0; i <= N; i++) {
     const t = i / N;
-    pts.push(`${(t * w).toFixed(2)}px ${b(mTop, t).toFixed(2)}px`);
+    pts.push(`${(E + t * w).toFixed(1)}px ${(E - b(mTop, t)).toFixed(1)}px`);
   }
-  // Right: top→bottom, bows left (inward)
+  // Right edge: (E+w, E) → (E+w, E+h), outward = rightward = add bulge
   for (let i = 1; i <= N; i++) {
     const t = i / N;
-    pts.push(`${(w - b(mRight, t)).toFixed(2)}px ${(t * h).toFixed(2)}px`);
+    pts.push(`${(E + w + b(mRight, t)).toFixed(1)}px ${(E + t * h).toFixed(1)}px`);
   }
-  // Bottom: right→left, bows up (inward)
+  // Bottom edge: (E+w, E+h) → (E, E+h), outward = downward = add bulge
   for (let i = 1; i <= N; i++) {
     const t = i / N;
-    pts.push(`${((1 - t) * w).toFixed(2)}px ${(h - b(mBottom, t)).toFixed(2)}px`);
+    pts.push(`${(E + (1 - t) * w).toFixed(1)}px ${(E + h + b(mBottom, t)).toFixed(1)}px`);
   }
-  // Left: bottom→top, bows right (inward)
+  // Left edge: (E, E+h) → (E, E), outward = leftward = subtract bulge
   for (let i = 1; i < N; i++) {
     const t = i / N;
-    pts.push(`${b(mLeft, t).toFixed(2)}px ${((1 - t) * h).toFixed(2)}px`);
+    pts.push(`${(E - b(mLeft, t)).toFixed(1)}px ${(E + (1 - t) * h).toFixed(1)}px`);
   }
   return `polygon(${pts.join(', ')})`;
 }
@@ -121,42 +118,51 @@ function buildClipPath(w, h, mids) {
 /**
  * Apply the homography + curved clip-path to #screen-content.
  *
- * @param {number[][]} corners  4×2 array of [x,y] in closeup image natural px,
- *                              order: TL, TR, BR, BL
- * @param {number}     imgW     Natural width of closeup image (px)
- * @param {number}     imgH     Natural height of closeup image (px)
- * @param {number[]}   [edgeMids=[0,0,0,0]]
- *                              Midpoint offsets [top,right,bottom,left] in
- *                              image-natural px (positive = bow outward).
+ * @param {number[][]} corners  4×2 [x,y] in closeup natural px, order TL TR BR BL
+ * @param {number}     imgW     Natural width of closeup image
+ * @param {number}     imgH     Natural height of closeup image
+ * @param {number[]}   edgeMids [top,right,bottom,left] offsets in natural px.
+ *                              Positive = outward bow. Negative = inward.
  */
 function applyScreenTransform(corners, imgW, imgH, edgeMids = [0, 0, 0, 0]) {
   const container = document.getElementById('scene-closeup');
   const screenEl  = document.getElementById('screen-content');
+  const desktop   = document.getElementById('win98-desktop');
 
-  // Scale image-natural coords → rendered page coords
   const rect   = container.getBoundingClientRect();
   const scaleX = rect.width  / imgW;
   const scaleY = rect.height / imgH;
   const dst    = corners.map(([x, y]) => [x * scaleX, y * scaleY]);
 
-  // Element dimensions approximated from top edge width × left edge height
+  // Screen dimensions in rendered px
   const w = Math.hypot(dst[1][0]-dst[0][0], dst[1][1]-dst[0][1]);
   const h = Math.hypot(dst[3][0]-dst[0][0], dst[3][1]-dst[0][1]);
+  const E = CLIP_EXPAND;
 
-  screenEl.style.width  = `${w}px`;
-  screenEl.style.height = `${h}px`;
+  // Element is (w+2E) × (h+2E); screen rect sits at (E,E) inside
+  screenEl.style.width  = `${w + 2 * E}px`;
+  screenEl.style.height = `${h + 2 * E}px`;
   screenEl.style.transformOrigin = '0 0';
 
-  // Homography: map element rect → screen quad
-  const src = [[0,0], [w,0], [w,h], [0,h]];
+  // Homography maps the screen rect (at offset E,E) to the dst quad
+  const src = [[E, E], [E + w, E], [E + w, E + h], [E, E + h]];
   screenEl.style.transform = toCSSMatrix3d(src, dst);
 
-  // Clip-path: scale edge midpoint offsets from image-natural to element space
+  // Win98 desktop fills only the actual screen area
+  if (desktop) {
+    desktop.style.position = 'absolute';
+    desktop.style.left   = `${E}px`;
+    desktop.style.top    = `${E}px`;
+    desktop.style.width  = `${w}px`;
+    desktop.style.height = `${h}px`;
+  }
+
+  // Scale mids from image-natural to rendered px
   const mids = [
-    edgeMids[0] * scaleY,   // top
-    edgeMids[1] * scaleX,   // right
-    edgeMids[2] * scaleY,   // bottom
-    edgeMids[3] * scaleX,   // left
+    edgeMids[0] * scaleY,
+    edgeMids[1] * scaleX,
+    edgeMids[2] * scaleY,
+    edgeMids[3] * scaleX,
   ];
   screenEl.style.clipPath = buildClipPath(w, h, mids);
 }

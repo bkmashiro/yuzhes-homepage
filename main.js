@@ -20,10 +20,10 @@ const SCREEN_CORNERS = [
 ];
 
 // Edge midpoint offsets in image-natural px.
-// Positive = bow INWARD (toward screen centre) — correct for CRT curved glass.
-// Set to 0 for straight edges (pure homography quad).
+// Positive = bow OUTWARD (convex, away from screen centre) — correct for CRT glass.
+// Negative = bow inward.  |value| must be < CLIP_EXPAND (80px rendered).
 const EDGE_MIDS = [
-  20,  // top    edge  ← start with visible inward bow so you can confirm it works
+  20,  // top    edge
   12,  // right  edge
   20,  // bottom edge
   12,  // left   edge
