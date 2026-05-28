@@ -673,6 +673,97 @@ function initCRTScan() {
   desktop.appendChild(scanContainer);
 }
 
+/* ─── ASCII art desktop widget ─── */
+const ASCII_FILES = ['assets/miku-ascii-art-1.txt', 'assets/miku-ascii-art-2.txt'];
+const ASCII_STORAGE_KEY = 'ascii-widget';
+
+async function initAsciiWidget() {
+  const desktop = document.getElementById('win98-desktop');
+  if (!desktop) return;
+
+  // Load both files, pick one randomly or cycle
+  let text = '';
+  try {
+    const idx = Math.floor(Math.random() * ASCII_FILES.length);
+    const r = await fetch(ASCII_FILES[idx]);
+    text = await r.text();
+  } catch (e) { return; }
+
+  // Restore saved state
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(ASCII_STORAGE_KEY) || '{}'); } catch {}
+
+  const widget = document.createElement('div');
+  widget.id = 'ascii-widget';
+  widget.style.left   = `${saved.left   ?? 20}px`;
+  widget.style.top    = `${saved.top    ?? 20}px`;
+  widget.style.width  = `${saved.width  ?? 320}px`;
+  widget.style.height = `${saved.height ?? 400}px`;
+
+  const pre = document.createElement('pre');
+  pre.id = 'ascii-widget-pre';
+  pre.textContent = text;
+  widget.appendChild(pre);
+
+  // Resize grip (bottom-right corner)
+  const grip = document.createElement('div');
+  grip.id = 'ascii-widget-grip';
+  grip.title = 'Resize';
+  widget.appendChild(grip);
+
+  desktop.insertBefore(widget, desktop.firstChild); // behind icons
+
+  function save() {
+    localStorage.setItem(ASCII_STORAGE_KEY, JSON.stringify({
+      left:   parseInt(widget.style.left),
+      top:    parseInt(widget.style.top),
+      width:  parseInt(widget.style.width),
+      height: parseInt(widget.style.height),
+    }));
+  }
+
+  // Drag to move
+  widget.addEventListener('mousedown', e => {
+    if (e.target === grip) return;
+    e.preventDefault(); e.stopPropagation();
+    const toDesktop = window._viewportToDesktop || ((x, y) => [x, y]);
+    const [sx, sy] = toDesktop(e.clientX, e.clientY);
+    const ox = parseInt(widget.style.left), oy = parseInt(widget.style.top);
+    function onMove(ev) {
+      const [cx, cy] = toDesktop(ev.clientX, ev.clientY);
+      widget.style.left = `${ox + cx - sx}px`;
+      widget.style.top  = `${oy + cy - sy}px`;
+    }
+    function onUp() {
+      save();
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    }
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+
+  // Resize grip
+  grip.addEventListener('mousedown', e => {
+    e.preventDefault(); e.stopPropagation();
+    const toDesktop = window._viewportToDesktop || ((x, y) => [x, y]);
+    const [sx, sy] = toDesktop(e.clientX, e.clientY);
+    const ow = parseInt(widget.style.width), oh = parseInt(widget.style.height);
+    function onMove(ev) {
+      const [cx, cy] = toDesktop(ev.clientX, ev.clientY);
+      widget.style.width  = `${Math.max(80,  ow + cx - sx)}px`;
+      widget.style.height = `${Math.max(60, oh + cy - sy)}px`;
+    }
+    function onUp() {
+      save();
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    }
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+}
+
 /* ─── Init ─── */
 function initWin98() {
   initDesktopIcons();
@@ -680,4 +771,5 @@ function initWin98() {
   initClock();
   initContextMenus();
   initCRTScan();
+  initAsciiWidget();
 }

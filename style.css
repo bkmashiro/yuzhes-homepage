@@ -469,6 +469,35 @@ html, body {
   100% { top: 100%; }
 }
 
+/* ─── ASCII art desktop widget ─── */
+#ascii-widget {
+  position: absolute;
+  overflow: hidden;
+  cursor: move;
+  z-index: 1; /* behind icons */
+  user-select: none;
+}
+#ascii-widget-pre {
+  margin: 0;
+  padding: 4px;
+  font-family: monospace;
+  font-size: 7px;
+  line-height: 1.1;
+  color: rgba(0, 255, 200, 0.35);
+  white-space: pre;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+#ascii-widget-grip {
+  position: absolute;
+  bottom: 0; right: 0;
+  width: 12px; height: 12px;
+  cursor: se-resize;
+  background: linear-gradient(135deg, transparent 50%, rgba(0,255,200,0.3) 50%);
+}
+
 /* ─── Calibration panel ─── */
 #cal-panel {
   position: fixed;
