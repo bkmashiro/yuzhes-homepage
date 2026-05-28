@@ -446,7 +446,11 @@ function initContextMenus() {
       showContextMenu(e.clientX, e.clientY, [
         { label: 'Open', action: def ? def.onOpen : null },
         '---',
-        { label: 'Send To', sub: true },
+        { label: 'Send To', sub: [
+          { label: '3½ Floppy (A:)' },
+          { label: 'Desktop (create shortcut)' },
+          { label: 'Mail Recipient' },
+        ]},
         '---',
         { label: 'Delete' },
         { label: 'Rename' },
@@ -456,10 +460,23 @@ function initContextMenus() {
     } else {
       // Desktop background context menu
       showContextMenu(e.clientX, e.clientY, [
-        { label: 'Arrange Icons', sub: true },
+        { label: 'Arrange Icons', sub: [
+          { label: 'by Name' },
+          { label: 'by Type' },
+          { label: 'by Size' },
+          { label: 'by Date' },
+          '---',
+          { label: 'Auto Arrange' },
+        ]},
         { label: 'Refresh' },
         '---',
-        { label: 'New', sub: true },
+        { label: 'New', sub: [
+          { label: 'Folder' },
+          { label: 'Shortcut' },
+          '---',
+          { label: 'Text Document' },
+          { label: 'Bitmap Image' },
+        ]},
         '---',
         {
           label: 'Properties',
