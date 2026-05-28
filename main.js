@@ -328,29 +328,133 @@ if (window.location.search.includes('calibrate')) {
   repositionMidHandles();
   window.addEventListener('resize', repositionMidHandles);
 
+  /* ── Anchor handle (⊕) ── drag to set pivot point on character ── */
+  // The ⊕ sits at the dock position (= where the anchor maps on screen).
+  // Drag it to the character's butt/feet; on release the character shifts
+  // so that exact image point becomes the new dock.
+  const anchorHandle = document.createElement('div');
+  anchorHandle.style.cssText = `
+    position:fixed; width:22px; height:22px; margin:-11px;
+    border-radius:50%; border:2px solid #fff;
+    background:rgba(255,80,80,0.85); cursor:crosshair; z-index:10000;
+    display:flex; align-items:center; justify-content:center;
+    font-size:13px; box-shadow:0 0 8px rgba(255,80,80,0.9);
+  `;
+  anchorHandle.textContent = '\u2295'; // ⊕
+  anchorHandle.title = 'Drag onto character pivot (butt/feet) then release';
+  document.body.appendChild(anchorHandle);
+
+  function getDock() {
+    return {
+      x: window.innerWidth  * (1 - charState.right  / 100),
+      y: window.innerHeight * (1 - charState.bottom / 100),
+    };
+  }
+  function getCharRenderSize() {
+    const h = window.innerHeight * (charState.height / 100);
+    const w = character.naturalWidth / character.naturalHeight * h;
+    return { w, h };
+  }
+
+  function repositionAnchorHandle() {
+    const d = getDock();
+    anchorHandle.style.left = `${d.x}px`;
+    anchorHandle.style.top  = `${d.y}px`;
+  }
+  repositionAnchorHandle();
+  window.addEventListener('resize', repositionAnchorHandle);
+
+  anchorHandle.addEventListener('mousedown', e => {
+    e.preventDefault(); e.stopPropagation();
+    anchorHandle.style.cursor = 'grabbing';
+    // Freeze image position at drag start
+    const snap = { ax: anchorCal.x, ay: anchorCal.y };
+    const dock  = getDock();
+    const { w, h } = getCharRenderSize();
+
+    const onMove = e => {
+      // Move handle with mouse (visual feedback only — image stays frozen)
+      anchorHandle.style.left = `${e.clientX}px`;
+      anchorHandle.style.top  = `${e.clientY}px`;
+    };
+    const onUp = e => {
+      // Compute image coordinate at release position (based on frozen image layout)
+      const dx = e.clientX - dock.x;
+      const dy = e.clientY - dock.y;
+      anchorCal.x = Math.max(0, Math.min(1, snap.ax + dx / w));
+      anchorCal.y = Math.max(0, Math.min(1, snap.ay + dy / h));
+      applyCharacterAnchor(anchorCal.x, anchorCal.y);
+      anchorHandle.style.cursor = 'crosshair';
+      repositionAnchorHandle(); // snap back to dock
+      updatePanel();
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+
   /* ── Character position/scale calibration ── */
   const charState = { right: 8, bottom: 0, height: 45 };
+
+  // Make character visible without animation; anchor transform (CSS) handles position
+  if (character) {
+    character.classList.add('visible');
+    character.style.transition = 'none';
+  }
 
   function applyCharState() {
     if (!character) return;
     character.style.right  = `${charState.right}%`;
     character.style.bottom = `${charState.bottom}%`;
     character.style.height = `${charState.height}%`;
-    character.style.opacity = '1';
-    character.style.transform = 'none';
+    // opacity/transform handled by .visible class + anchor CSS vars
     updatePanel();
   }
   applyCharState();
 
+  /* ── Anchor calibration state ── */
+  // anchorCal: which normalised point of the image maps to the dock position.
+  // Initialised from auto-detection; overwritten by dragging the ⊕ handle.
+  let anchorCal = { x: 0.5, y: 1.0 };
+
+  function initAnchorCal() {
+    if (!character || !character.complete || !character.naturalWidth) return;
+    try {
+      const w = character.naturalWidth, h = character.naturalHeight;
+      const cv = document.createElement('canvas');
+      cv.width = w; cv.height = h;
+      cv.getContext('2d').drawImage(character, 0, 0);
+      const d = cv.getContext('2d').getImageData(0, 0, w, h).data;
+      let maxX = 0, maxY = 0;
+      for (let y = 0; y < h; y++)
+        for (let x = 0; x < w; x++)
+          if (d[(y * w + x) * 4 + 3] > 16) {
+            if (x > maxX) maxX = x;
+            if (y > maxY) maxY = y;
+          }
+      anchorCal.x = (maxX + 1) / w;
+      anchorCal.y = (maxY + 1) / h;
+    } catch (e) { /* leave defaults */ }
+    applyCharacterAnchor(anchorCal.x, anchorCal.y);
+    updatePanel();
+  }
+  if (character) {
+    if (character.complete && character.naturalWidth) initAnchorCal();
+    else character.addEventListener('load', initAnchorCal);
+  }
+
   function updatePanel() {
     panel.innerHTML =
-      `<b style="color:#ffd700">&#x2699; Calibration</b>  <span style="color:#888;font-size:10px">&#x25CF;corners  &#x25C6;edges  &#x2605;char</span><br><br>` +
+      `<b style="color:#ffd700">&#x2699; Calibration</b>  <span style="color:#888;font-size:10px">&#x25CF;corners  &#x25C6;edges  &#x2605;char  &#x2295;anchor</span><br><br>` +
       `<span style="color:#88ffcc">const SCREEN_CORNERS = [<br>` +
       cal.map((c,i) => `&nbsp;&nbsp;[${c[0]}, ${c[1]}], <span style="color:#555">// ${LABELS[i]}</span>`).join('<br>') +
       `<br>];<br><br>const EDGE_MIDS = [${mids.map(v=>Math.round(v)).join(', ')}];<br>` +
       `<span style="color:#888">// top, right, bottom, left</span><br><br>` +
-      `<span style="color:#ffcc44">// Character<br>` +
-      `right:${charState.right.toFixed(1)}% bottom:${charState.bottom.toFixed(1)}% height:${charState.height.toFixed(1)}%</span></span>`;
+      `<span style="color:#ffcc44">// Character position<br>` +
+      `right:${charState.right.toFixed(1)}% bottom:${charState.bottom.toFixed(1)}% height:${charState.height.toFixed(1)}%<br><br>` +
+      `// Anchor (pivot point, normalised 0..1)<br>` +
+      `CHAR_ANCHOR = { x: ${anchorCal.x.toFixed(4)}, y: ${anchorCal.y.toFixed(4)} }</span></span>`;
   }
   updatePanel();
 
