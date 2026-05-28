@@ -5,6 +5,8 @@
  */
 
 import { saySpeech } from './main.js';
+import mikuArt1 from './miku-ascii-art-1.txt?raw';
+import mikuArt2 from './miku-ascii-art-2.txt?raw';
 
 /* ─── Icon pixel art (SVG data URIs) ─── */
 const ICONS = {
@@ -688,20 +690,15 @@ function initCRTScan() {
 }
 
 /* ─── ASCII art desktop widget ─── */
-const ASCII_FILES = ['assets/miku-ascii-art-1.txt', 'assets/miku-ascii-art-2.txt'];
 const ASCII_STORAGE_KEY = 'ascii-widget';
 
-async function initAsciiWidget() {
+function initAsciiWidget() {
   const desktop = document.getElementById('win98-desktop');
   if (!desktop) return;
 
-  // Load both files, pick one randomly or cycle
-  let text = '';
-  try {
-    const idx = Math.floor(Math.random() * ASCII_FILES.length);
-    const r = await fetch(ASCII_FILES[idx]);
-    text = await r.text();
-  } catch (e) { return; }
+  // Pick one randomly from the inlined texts
+  const ASCII_TEXTS = [mikuArt1, mikuArt2];
+  const text = ASCII_TEXTS[Math.floor(Math.random() * ASCII_TEXTS.length)];
 
   // Restore saved state
   let saved = {};
