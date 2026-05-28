@@ -1,0 +1,397 @@
+/* ─── Reset ─── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: #000;
+  font-family: 'Tahoma', 'MS Sans Serif', sans-serif;
+}
+
+/* ─── Scenes ─── */
+.scene {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.6s ease;
+}
+.scene.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+#scene-wide img,
+#scene-closeup img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Zoom-in hint */
+#zoom-hint {
+  position: absolute;
+  bottom: 10%;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(255,255,255,0.7);
+  font-size: 0.9rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  animation: pulse 2s ease-in-out infinite;
+  pointer-events: none;
+  text-shadow: 0 0 10px rgba(255,255,255,0.5);
+}
+@keyframes pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+/* ─── Zoom animation overlay ─── */
+#zoom-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  opacity: 0;
+}
+#zoom-overlay img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+}
+#zoom-overlay.zooming {
+  pointer-events: auto;
+  animation: zoomIn 1.1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+@keyframes zoomIn {
+  0%   { opacity: 1; transform: scale(1); }
+  60%  { opacity: 1; transform: scale(3.5) translate(var(--tx), var(--ty)); }
+  100% { opacity: 0; transform: scale(3.5) translate(var(--tx), var(--ty)); }
+}
+
+/* ─── Screen content (overlaid on CRT) ─── */
+#screen-content {
+  position: absolute;
+  /* corners set by JS via clip-path / matrix3d */
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  transform-origin: 0 0;
+  /* matrix3d set by homography.js */
+  overflow: hidden;
+  pointer-events: auto;
+}
+
+/* ─── Win98 Desktop ─── */
+#win98-desktop {
+  width: 100%; height: 100%;
+  background: #008080;
+  position: relative;
+  overflow: hidden;
+  cursor: default;
+  user-select: none;
+}
+
+/* Desktop icons */
+#desktop-icons {
+  position: absolute;
+  top: 10px; left: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.desktop-icon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 72px;
+  cursor: pointer;
+  padding: 4px;
+  border: 1px solid transparent;
+}
+.desktop-icon:hover,
+.desktop-icon.selected {
+  background: rgba(0, 0, 128, 0.5);
+  border-color: rgba(255,255,255,0.5);
+}
+.desktop-icon img {
+  width: 32px; height: 32px;
+  image-rendering: pixelated;
+}
+.desktop-icon span {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #fff;
+  text-align: center;
+  text-shadow: 1px 1px 1px #000;
+  word-break: break-word;
+  line-height: 1.2;
+}
+
+/* ─── Taskbar ─── */
+#taskbar {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 28px;
+  background: #c0c0c0;
+  border-top: 2px solid #fff;
+  display: flex;
+  align-items: center;
+  padding: 2px 4px;
+  gap: 6px;
+  z-index: 10;
+}
+
+#start-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px 2px 4px;
+  background: #c0c0c0;
+  border: 2px solid;
+  border-color: #fff #808080 #808080 #fff;
+  font-size: 12px;
+  font-weight: bold;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+#start-btn:active {
+  border-color: #808080 #fff #fff #808080;
+}
+#start-btn img {
+  width: 16px; height: 16px;
+  image-rendering: pixelated;
+}
+
+#taskbar-clock {
+  margin-left: auto;
+  font-size: 11px;
+  border: 1px inset #808080;
+  padding: 2px 6px;
+  background: #c0c0c0;
+  min-width: 50px;
+  text-align: center;
+}
+
+/* Taskbar open windows */
+.taskbar-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: #c0c0c0;
+  border: 2px solid;
+  border-color: #808080 #fff #fff #808080;
+  font-size: 11px;
+  font-family: inherit;
+  cursor: pointer;
+  min-width: 80px;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.taskbar-btn.active {
+  border-color: #808080 #fff #fff #808080;
+  background: #b0b0b0;
+}
+
+/* ─── Start Menu ─── */
+#start-menu {
+  position: absolute;
+  bottom: 28px; left: 0;
+  width: 200px;
+  background: #c0c0c0;
+  border: 2px solid;
+  border-color: #fff #808080 #808080 #fff;
+  z-index: 100;
+  display: none;
+}
+#start-menu.open { display: block; }
+
+.start-menu-sidebar {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 24px;
+  background: #808080;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 4px;
+}
+.start-menu-sidebar span {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  color: #c0c0c0;
+  font-size: 12px;
+  font-weight: bold;
+  letter-spacing: 0.1em;
+}
+
+.start-menu-items {
+  margin-left: 24px;
+}
+.start-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.start-menu-item:hover {
+  background: #000080;
+  color: #fff;
+}
+.start-menu-item img {
+  width: 20px; height: 20px;
+  image-rendering: pixelated;
+}
+.start-menu-separator {
+  height: 1px;
+  background: #808080;
+  margin: 2px 0;
+  box-shadow: 0 1px 0 #fff;
+}
+
+/* ─── Windows ─── */
+.win98-window {
+  position: absolute;
+  background: #c0c0c0;
+  border: 2px solid;
+  border-color: #fff #808080 #808080 #fff;
+  min-width: 200px;
+  min-height: 100px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+}
+.win98-window.focused { z-index: 30; }
+
+.window-titlebar {
+  display: flex;
+  align-items: center;
+  background: #000080;
+  color: #fff;
+  padding: 2px 4px;
+  gap: 6px;
+  cursor: move;
+  user-select: none;
+  height: 20px;
+  flex-shrink: 0;
+}
+.window-titlebar.inactive { background: #808080; }
+
+.window-title-icon {
+  width: 14px; height: 14px;
+  image-rendering: pixelated;
+}
+.window-title-text {
+  flex: 1;
+  font-size: 11px;
+  font-weight: bold;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.window-controls {
+  display: flex;
+  gap: 2px;
+}
+.window-btn {
+  width: 16px; height: 14px;
+  background: #c0c0c0;
+  border: 1px solid;
+  border-color: #fff #808080 #808080 #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  cursor: pointer;
+  line-height: 1;
+}
+.window-btn:active { border-color: #808080 #fff #fff #808080; }
+.window-btn.close { font-weight: bold; }
+
+.window-body {
+  flex: 1;
+  overflow: auto;
+  background: #c0c0c0;
+  padding: 8px;
+  font-size: 12px;
+}
+
+/* Inset panels */
+.inset-panel {
+  background: #fff;
+  border: 1px solid;
+  border-color: #808080 #fff #fff #808080;
+  padding: 8px;
+}
+
+/* ─── CRT overlay ─── */
+#crt-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+  /* Scanlines */
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 2px,
+    rgba(0,0,0,0.07) 2px,
+    rgba(0,0,0,0.07) 4px
+  );
+  /* Screen glow tint */
+  box-shadow: inset 0 0 80px rgba(0, 200, 100, 0.04);
+}
+
+/* ─── Anime character ─── */
+#character {
+  position: absolute;
+  bottom: 0;
+  right: 8%;
+  height: 45%;
+  z-index: 40;
+  pointer-events: none;
+  filter: drop-shadow(0 4px 24px rgba(0,0,0,0.5));
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.8s ease 0.4s, transform 0.8s ease 0.4s;
+}
+#character.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ─── Speech bubble ─── */
+#speech-bubble {
+  position: absolute;
+  bottom: 42%;
+  right: calc(8% + 60px);
+  background: #fff;
+  border: 2px solid #333;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  max-width: 200px;
+  z-index: 41;
+  opacity: 0;
+  transform: translateY(8px) scale(0.95);
+  transition: opacity 0.4s ease 1s, transform 0.4s ease 1s;
+  pointer-events: none;
+}
+#speech-bubble::after {
+  content: '';
+  position: absolute;
+  right: -12px; bottom: 20px;
+  border: 6px solid transparent;
+  border-left-color: #333;
+}
+#speech-bubble.visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}

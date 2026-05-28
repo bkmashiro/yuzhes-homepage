@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>yuzhes</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Scene: wide shot, zoom-in trigger -->
+  <div id="scene-wide" class="scene active">
+    <img id="wide-img" src="assets/wide.jpg" alt="desk scene" />
+    <div id="zoom-hint">click to enter</div>
+  </div>
+
+  <!-- Scene: closeup with screen overlay -->
+  <div id="scene-closeup" class="scene">
+    <img id="closeup-img" src="assets/closeup.jpg" alt="CRT monitor" />
+
+    <!-- Screen content div — will be transformed via matrix3d to match screen corners -->
+    <div id="screen-content">
+      <!-- Win98-style desktop goes here -->
+      <div id="win98-desktop">
+        <div id="desktop-icons">
+          <!-- icons injected by JS -->
+        </div>
+        <div id="taskbar">
+          <button id="start-btn">
+            <img src="assets/win98-logo.png" alt="" />
+            Start
+          </button>
+          <div id="taskbar-clock"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CRT overlay effects -->
+    <div id="crt-overlay"></div>
+  </div>
+
+  <script src="homography.js"></script>
+  <script src="win98.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
