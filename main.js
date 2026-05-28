@@ -112,6 +112,58 @@ if (closeupImg.complete && closeupImg.naturalWidth) {
 /* ─── Init Win98 desktop ─── */
 initWin98();
 
+/* ─── Character transparent-padding compensation ───────────────────────────
+ * The generated anime-girl.png has large transparent areas on each side.
+ * position:fixed right/bottom anchors the IMAGE box, not the visible body.
+ * As the viewport height changes, width:auto scales the image, so the blank
+ * area in pixels grows/shrinks → drift in the character's apparent position.
+ *
+ * Fix: detect the non-transparent bounding box via canvas, then set CSS vars
+ * --ctx / --cty so the CSS transform shifts the image by exactly the blank
+ * fractions (translateX(rFrac*100%) uses own width, so it scales perfectly).
+ * ──────────────────────────────────────────────────────────────────────────*/
+function applyCharacterTrim(img) {
+  try {
+    const w = img.naturalWidth, h = img.naturalHeight;
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    const ctx = c.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    const data = ctx.getImageData(0, 0, w, h).data;
+
+    let minX = w, maxX = 0, minY = h, maxY = 0;
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        if (data[(y * w + x) * 4 + 3] > 16) {
+          if (x < minX) minX = x;
+          if (x > maxX) maxX = x;
+          if (y < minY) minY = y;
+          if (y > maxY) maxY = y;
+        }
+      }
+    }
+
+    // Fraction of image width/height that is blank on the right / bottom
+    const rFrac = (w - 1 - maxX) / w;
+    const bFrac = (h - 1 - maxY) / h;
+
+    // CSS vars consumed by #character transform in style.css
+    img.style.setProperty('--ctx', `${(rFrac * 100).toFixed(3)}%`);
+    img.style.setProperty('--cty', `${(bFrac * 100).toFixed(3)}%`);
+  } catch (err) {
+    // Canvas tainted (cross-origin) or other error — leave defaults
+    console.warn('Character trim skipped:', err);
+  }
+}
+
+if (character) {
+  if (character.complete && character.naturalWidth) {
+    applyCharacterTrim(character);
+  } else {
+    character.addEventListener('load', () => applyCharacterTrim(character));
+  }
+}
+
 /* ─── Speech bubble content ─── */
 if (speechBubble) {
   speechBubble.innerHTML = `

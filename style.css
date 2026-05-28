@@ -334,8 +334,12 @@ html, body {
 }
 
 /* ─── Anime character ─── */
+/* --ctx / --cty: transparent-padding compensation set by JS after image loads.
+   translateX(rFrac*100%) shifts right by exactly the right blank area (100% = own width),
+   translateY(bFrac*100%) shifts down by the bottom blank area.
+   This eliminates drift caused by auto-width changing with viewport height. */
 #character {
-  position: fixed;   /* viewport-anchored — reliably follows browser resize */
+  position: fixed;
   bottom: 0;
   right: 8vw;
   height: 45vh;
@@ -344,12 +348,12 @@ html, body {
   pointer-events: none;
   filter: drop-shadow(0 4px 24px rgba(0,0,0,0.5));
   opacity: 0;
-  transform: translateY(20px);
+  transform: translateX(var(--ctx, 0%)) translateY(calc(var(--cty, 0%) + 20px));
   transition: opacity 0.8s ease 0.4s, transform 0.8s ease 0.4s;
 }
 #character.visible {
   opacity: 1;
-  transform: translateY(0);
+  transform: translateX(var(--ctx, 0%)) translateY(var(--cty, 0%));
 }
 
 /* ─── Speech bubble ─── */
