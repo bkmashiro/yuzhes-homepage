@@ -72,20 +72,18 @@ html, body {
 /* ─── Screen content (overlaid on CRT) ─── */
 #screen-content {
   position: absolute;
-  /* corners set by JS via clip-path / matrix3d */
   top: 0; left: 0;
-  width: 100%; height: 100%;
+  /* width/height/transform/clip-path set entirely by homography.js */
   transform-origin: 0 0;
-  /* matrix3d set by homography.js */
-  overflow: hidden;
+  overflow: visible; /* clip-path handles clipping; visible lets CLIP_EXPAND bleed show */
   pointer-events: auto;
 }
 
 /* ─── Win98 Desktop ─── */
 #win98-desktop {
-  width: 100%; height: 100%;
+  /* position/left/top/width/height set entirely by homography.js */
+  position: absolute;
   background: #008080;
-  position: relative;
   overflow: hidden;
   cursor: default;
   user-select: none;

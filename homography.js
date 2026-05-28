@@ -179,15 +179,28 @@ function applyScreenTransform(corners, imgW, imgH, edgeMids = [0, 0, 0, 0]) {
     edgeMids[3] * coverScale,
   ];
   screenEl.style.clipPath = buildClipPath(w, h, mids);
+
+  // Keep warp filter in sync — must run AFTER win98-desktop dimensions are set
+  if (typeof applyCRTWarp === 'function') applyCRTWarp();
 }
 
-// Re-apply on resize
-window.addEventListener('resize', () => {
-  if (window._screenState) applyScreenTransform(...window._screenState);
-});
+/** One ResizeObserver watches #scene-closeup and re-applies the transform.
+ *  ResizeObserver fires after layout is settled, giving correct getBoundingClientRect()
+ *  values with no debounce needed. Registered once on first initScreenTransform call.
+ */
+let _screenResizeObserver = null;
 
 /** Public entry point. Call once the closeup scene is active. */
 function initScreenTransform(corners, imgW, imgH, edgeMids = [0, 0, 0, 0]) {
   window._screenState = [corners, imgW, imgH, edgeMids];
   applyScreenTransform(corners, imgW, imgH, edgeMids);
+
+  // Register ResizeObserver once — fires after layout, giving reliable rect values
+  if (!_screenResizeObserver) {
+    _screenResizeObserver = new ResizeObserver(() => {
+      if (window._screenState) applyScreenTransform(...window._screenState);
+    });
+    const container = document.getElementById('scene-closeup');
+    if (container) _screenResizeObserver.observe(container);
+  }
 }

@@ -25,8 +25,6 @@ const CRT_WARP = {
   ky:       0.8,
 };
 
-let _warpTimer = null;
-
 function buildDisplacementMap(w, h, strength, kx, ky) {
   const c   = document.createElement('canvas');
   c.width   = w;
@@ -110,8 +108,5 @@ function applyCRTWarp(params = CRT_WARP) {
   _applyCRTWarp(el, CRT_WARP);
 }
 
-// Re-apply on resize (debounced)
-window.addEventListener('resize', () => {
-  clearTimeout(_warpTimer);
-  _warpTimer = setTimeout(() => applyCRTWarp(), 200);
-});
+// Resize is handled by homography.js ResizeObserver which calls applyCRTWarp()
+// directly after updating win98-desktop dimensions — no separate handler needed.
