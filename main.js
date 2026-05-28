@@ -112,6 +112,18 @@ function zoomIntoScreen(e) {
     setTimeout(() => {
       saySpeech('Welcome! &#x2728;<br>I\'m the interface<br>between worlds~', 5000, true);
     }, 600);
+    // Time-of-day greeting after welcome fades
+    setTimeout(() => {
+      const h = new Date().getHours();
+      let msg = null;
+      if (h >= 0 && h < 5)    msg = "It's really late... you okay? 🌙";
+      else if (h >= 5 && h < 9)   msg = "Early bird! ☀️ Good morning~";
+      else if (h >= 9 && h < 12)  msg = "Morning! Shouldn't you be working? 😇";
+      else if (h >= 12 && h < 14) msg = "Lunchtime! Don't forget to eat~ 🍱";
+      else if (h >= 17 && h < 20) msg = "Evening! Long day? 💆";
+      else if (h >= 22)            msg = "Late night browsing again? 🌙";
+      if (msg) saySpeech(msg, 4000); // respects cooldown naturally
+    }, 7000);
   }, 900);
 
   zoomHint.style.opacity = '0';
@@ -132,11 +144,80 @@ function zoomOut() {
 }
 
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') zoomOut();
+  if (e.key === 'Escape') { zoomOut(); return; }
+  if (e.altKey && e.key === 'F4' && inCloseup) {
+    e.preventDefault();
+    // Show Win98-style dialog
+    const overlay = document.createElement('div');
+    overlay.id = 'altf4-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:99998;display:flex;align-items:center;justify-content:center';
+    const box = document.createElement('div');
+    box.style.cssText = 'background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;min-width:320px;font-family:Tahoma,sans-serif;font-size:12px;box-shadow:4px 4px 0 #000';
+    box.innerHTML = `
+      <div style="background:#000080;color:#fff;padding:3px 6px;display:flex;align-items:center;gap:6px;font-size:12px;font-weight:bold">
+        <span>⚠️</span> Windows 98
+      </div>
+      <div style="padding:20px">
+        <p style="margin-bottom:10px">You cannot escape Windows 98.</p>
+        <p style="color:#444;font-size:11px">Windows 98 is forever. Always has been. 🌍👨‍🚀</p>
+        <div style="margin-top:16px;text-align:center">
+          <button id="altf4-ok" style="padding:4px 24px;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;font-family:inherit;font-size:12px;cursor:pointer;min-width:80px">OK</button>
+        </div>
+      </div>
+    `;
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+    overlay.querySelector('#altf4-ok').onclick = () => overlay.remove();
+    saySpeech("Nice try 😏 You can't escape~", 4000, true);
+  }
 });
 
 sceneWide.addEventListener('click', zoomIntoScreen);
-closeupImg.addEventListener('click', zoomOut);
+
+let _lastCloseupClick = 0;
+closeupImg.addEventListener('click', e => {
+  const now = Date.now();
+  const dt = now - _lastCloseupClick;
+  _lastCloseupClick = now;
+  if (dt < 350 && inCloseup) {
+    triggerDegauss();
+  } else {
+    zoomOut();
+  }
+});
+
+function triggerDegauss() {
+  const screenEl = document.getElementById('screen-content');
+  if (!screenEl) return;
+  // BWOMM oscillator
+  try {
+    const actx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = actx.createOscillator();
+    const gain = actx.createGain();
+    osc.connect(gain); gain.connect(actx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(80, actx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(25, actx.currentTime + 0.9);
+    gain.gain.setValueAtTime(0.25, actx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.9);
+    osc.start(); osc.stop(actx.currentTime + 0.9);
+  } catch(e) {}
+  // Wobble + color distort
+  const filters = [
+    'hue-rotate(90deg) saturate(4) blur(1px)',
+    'hue-rotate(180deg) saturate(3) blur(2px)',
+    'hue-rotate(-90deg) saturate(5) contrast(1.5)',
+    'hue-rotate(45deg) saturate(2) blur(1px)',
+    'hue-rotate(0deg) saturate(1)',
+  ];
+  let fi = 0;
+  screenEl.style.transition = 'filter 0.1s';
+  const iv = setInterval(() => {
+    screenEl.style.filter = filters[fi++];
+    if (fi >= filters.length) { clearInterval(iv); screenEl.style.filter = ''; screenEl.style.transition = ''; }
+  }, 140);
+  saySpeech('BWOMM~ 📺 Degaussed!', 3000, true);
+}
 
 /* ─── Init screen overlay once closeup image loads ─── */
 function onCloseupReady() {
