@@ -20,52 +20,117 @@ const ICONS = {
 };
 
 /* ─── Desktop icon definitions ─── */
+// contextItems(def) → array of menu items for right-click; undefined = use default
 const DESKTOP_ICONS = [
   {
     id: 'my-computer',
     label: 'My Computer',
     icon: ICONS.myComputer,
     onOpen: openMyComputer,
+    contextItems: def => [
+      { label: 'Open',    action: def.onOpen },
+      { label: 'Explore', action: def.onOpen },
+      '---',
+      { label: 'Map Network Drive…',      action: () => saySpeech('No network cable detected \uD83D\uDCE1', 4000) },
+      { label: 'Disconnect Network Drive…', label_dim: true },
+      '---',
+      { label: 'Properties', action: openSysProps },
+    ],
   },
   {
     id: 'projects',
     label: 'Projects',
     icon: ICONS.folder,
     onOpen: openProjects,
+    contextItems: def => [
+      { label: 'Open',    action: def.onOpen },
+      { label: 'Explore', action: def.onOpen },
+      '---',
+      { label: 'Find\u2026', action: () => saySpeech("Searching\u2026 \uD83D\uDD0D  no results for 'motivation'", 4000) },
+      { label: 'Send To', sub: [
+        { label: '3\u00BD Floppy (A:)' },
+        { label: 'Desktop (create shortcut)' },
+      ]},
+      '---',
+      { label: 'Rename' },
+      { label: 'Properties' },
+    ],
   },
   {
     id: 'about',
     label: 'About Me',
     icon: ICONS.notepad,
     onOpen: openAbout,
+    contextItems: def => [
+      { label: 'Open', action: def.onOpen },
+      { label: 'Print', action: () => saySpeech('No printer found \uD83D\uDDA8\uFE0F  (good)', 4000) },
+      '---',
+      { label: 'Send To', sub: [
+        { label: 'Mail Recipient', action: () => saySpeech('Composing email\u2026 error: no email client \uD83D\uDE05') },
+        { label: '3\u00BD Floppy (A:)' },
+      ]},
+      '---',
+      { label: 'Properties' },
+    ],
   },
   {
     id: 'internet',
     label: 'Internet',
     icon: ICONS.internet,
     onOpen: openInternet,
+    contextItems: def => [
+      { label: 'Open',                   action: def.onOpen },
+      { label: 'Open in New Window',     action: def.onOpen },
+      { label: 'Set as Default Browser', action: () => saySpeech('Bold choice in 2024 \uD83D\uDE02', 4000) },
+      '---',
+      { label: 'Properties', action: openIEProps },
+    ],
   },
   {
     id: 'recycle',
     label: 'Recycle Bin',
     icon: ICONS.recycle,
-    onOpen: () => {
-      openWindow('recycle-bin', 'Recycle Bin', ICONS.recycle,
-        '<p style="color:#808080;font-style:italic">Recycle Bin is empty.</p>');
-      saySpeech("It's empty... just like my inbox \u{1F4ED}");
-    },
+    onOpen: openRecycleBin,
+    contextItems: def => [
+      { label: 'Open', action: def.onOpen },
+      { label: 'Empty Recycle Bin', action: emptyRecycleBin },
+      '---',
+      { label: 'Properties', action: () => openWindow('recycle-props', 'Recycle Bin Properties', ICONS.recycle, `
+        <div style="padding:12px;font-size:12px">
+          <div class="inset-panel">
+            <p><b>Global</b></p>
+            <p style="margin-top:8px">Maximum size: <b>10%</b> of each drive</p>
+            <p style="margin-top:4px">Space used: <b>0 bytes</b></p>
+          </div>
+          <p style="margin-top:10px;color:#808080;font-size:11px">Configure the amount of disk space to use for deleted files.</p>
+        </div>
+      `, { width: 280, height: 200 }) },
+    ],
   },
   {
     id: 'guestbook',
     label: 'guestbook.txt',
     icon: ICONS.notepad,
     onOpen: openGuestbook,
+    contextItems: def => [
+      { label: 'Open', action: def.onOpen },
+      { label: 'Print', action: () => saySpeech('Sending to printer\u2026 \uD83D\uDDA8\uFE0F  Error: out of ink', 4000) },
+      '---',
+      { label: 'Copy', action: () => saySpeech('Copied! (not really \uD83D\uDE09)', 3000) },
+      { label: 'Properties' },
+    ],
   },
   {
     id: 'minesweeper',
     label: 'Minesweeper',
     icon: ICONS.mine,
     onOpen: openMinesweeper,
+    contextItems: def => [
+      { label: 'Open',        action: def.onOpen },
+      { label: 'High Scores', action: openMineHighScores },
+      '---',
+      { label: 'Properties' },
+    ],
   },
 ];
 
@@ -337,18 +402,27 @@ function openMyComputer() {
     saySpeech("Make yourself at home~ \u{1F3E0}");
   }
   openWindow('my-computer', 'My Computer', ICONS.myComputer, `
-    <div style="display:grid;grid-template-columns:repeat(3,64px);gap:16px;justify-content:center;padding:16px">
-      <div class="desktop-icon" id="mycomp-projects-icon">
+    <div style="display:flex;flex-wrap:wrap;gap:16px;padding:16px;align-items:flex-start">
+      <div class="win-icon" data-action="openProjects">
         <img src="${ICONS.folder}" alt=""><span>Projects</span>
       </div>
-      <div class="desktop-icon">
+      <div class="win-icon">
         <img src="${ICONS.folder}" alt=""><span>Documents</span>
       </div>
+      <div class="win-icon">
+        <img src="${ICONS.myComputer}" alt=""><span>(C:)</span>
+      </div>
     </div>
-  `, { width: 300, height: 200 });
-  // Attach dblclick after window is created
-  const projIcon = document.getElementById('mycomp-projects-icon');
-  if (projIcon) projIcon.addEventListener('dblclick', () => openProjects());
+  `, { width: 320, height: 200 });
+  // Attach dblclick via delegation after window is created
+  const win = document.getElementById('win-my-computer');
+  if (win) {
+    win.addEventListener('dblclick', e => {
+      const icon = e.target.closest('.win-icon[data-action]');
+      if (!icon) return;
+      if (icon.dataset.action === 'openProjects') openProjects();
+    });
+  }
 }
 
 function openProjects() {
@@ -433,6 +507,72 @@ function openInternet() {
       </div>
     </div>
   `, { width: 320, height: 240 });
+}
+
+/* ─── Extra window openers (referenced by icon contextItems) ─── */
+
+function openRecycleBin() {
+  openWindow('recycle-bin', 'Recycle Bin', ICONS.recycle,
+    '<p style="color:#808080;font-style:italic;padding:8px">Recycle Bin is empty.</p>');
+  saySpeech("It\u2019s empty\u2026 just like my inbox \uD83D\uDCED");
+}
+
+function emptyRecycleBin() {
+  // Fake "emptying" progress then speech
+  saySpeech('Emptying\u2026 \uD83D\uDDD1\uFE0F  Done! (it was already empty)', 4000, true);
+}
+
+function openSysProps() {
+  openWindow('sys-props', 'System Properties', ICONS.myComputer, `
+    <div style="padding:12px;font-size:12px">
+      <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:12px">
+        <div style="font-size:40px;line-height:1">&#x1F4BB;</div>
+        <div>
+          <p><b>Microsoft Windows 98</b></p>
+          <p style="color:#808080;font-size:11px;margin-top:2px">4.10.1998</p>
+          <p style="margin-top:6px;font-size:11px">Registered to: <b>yuzhes</b></p>
+        </div>
+      </div>
+      <div class="inset-panel" style="font-size:11px">
+        <p>Processor: Intel Pentium II, 450 MHz</p>
+        <p style="margin-top:4px">RAM: 64.0 MB</p>
+        <p style="margin-top:8px;color:#808080">This computer is running perfectly fine. Probably.</p>
+      </div>
+    </div>
+  `, { width: 300, height: 210 });
+}
+
+function openIEProps() {
+  openWindow('ie-props', 'Internet Options', ICONS.internet, `
+    <div style="padding:12px;font-size:12px">
+      <p><b>Home page</b></p>
+      <div class="inset-panel" style="margin-top:6px;display:flex;align-items:center;gap:6px;padding:4px 8px">
+        <span style="color:#808080">Address:</span>
+        <span style="font-family:monospace">about:me</span>
+      </div>
+      <p style="margin-top:12px"><b>Temporary Internet Files</b></p>
+      <div style="margin-top:6px;display:flex;gap:6px">
+        <button style="font-size:11px;font-family:inherit;padding:3px 10px;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff">Delete Files</button>
+        <button style="font-size:11px;font-family:inherit;padding:3px 10px;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff">Settings</button>
+      </div>
+      <p style="margin-top:10px"><b>Cookies:</b> &#x1F36A;&#x1F36A;&#x1F36A; (a lot)</p>
+      <p style="margin-top:8px;color:#808080;font-size:11px">Security: Medium (trust everyone)</p>
+    </div>
+  `, { width: 300, height: 240 });
+}
+
+function openMineHighScores() {
+  openWindow('mine-scores', 'Minesweeper \u2014 High Scores', ICONS.mine, `
+    <div style="padding:16px;font-size:12px;text-align:center">
+      <p>&#x1F3C6; <b>Best Times</b></p>
+      <table style="margin:12px auto;border-collapse:collapse;text-align:left">
+        <tr><td style="padding:4px 16px">Beginner</td><td style="padding:4px 16px;color:#0000ff">999</td><td style="padding:4px 16px">Anonymous</td></tr>
+        <tr><td style="padding:4px 16px">Intermediate</td><td style="padding:4px 16px;color:#0000ff">999</td><td style="padding:4px 16px">Anonymous</td></tr>
+        <tr><td style="padding:4px 16px">Expert</td><td style="padding:4px 16px;color:#0000ff">999</td><td style="padding:4px 16px">Anonymous</td></tr>
+      </table>
+      <p style="color:#808080;font-size:11px">Play a game to set a record!</p>
+    </div>
+  `, { width: 280, height: 200 });
 }
 
 function openGuestbook() {
@@ -709,26 +849,26 @@ function initContextMenus() {
 
     const clickedIcon = e.target.closest('.desktop-icon');
     if (clickedIcon) {
-      // Icon context menu
-      // Find which icon definition this is
-      const iconDefs = DESKTOP_ICONS;
+      // Icon context menu — use per-icon contextItems if defined, else generic
       const allIcons = Array.from(document.querySelectorAll('#desktop-icons .desktop-icon'));
       const idx = allIcons.indexOf(clickedIcon);
-      const def = iconDefs[idx];
-      showContextMenu(e.clientX, e.clientY, [
-        { label: 'Open', action: def ? def.onOpen : null },
-        '---',
-        { label: 'Send To', sub: [
-          { label: '3½ Floppy (A:)' },
-          { label: 'Desktop (create shortcut)' },
-          { label: 'Mail Recipient' },
-        ]},
-        '---',
-        { label: 'Delete' },
-        { label: 'Rename' },
-        '---',
-        { label: 'Properties' },
-      ]);
+      const def = DESKTOP_ICONS[idx];
+      const items = def?.contextItems
+        ? def.contextItems(def)
+        : [
+            { label: 'Open', action: def?.onOpen ?? null },
+            '---',
+            { label: 'Send To', sub: [
+              { label: '3\u00BD Floppy (A:)' },
+              { label: 'Desktop (create shortcut)' },
+            ]},
+            '---',
+            { label: 'Delete' },
+            { label: 'Rename' },
+            '---',
+            { label: 'Properties' },
+          ];
+      showContextMenu(e.clientX, e.clientY, items);
     } else {
       // Desktop background context menu
       showContextMenu(e.clientX, e.clientY, [
