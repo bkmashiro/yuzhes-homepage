@@ -334,10 +334,11 @@ html, body {
 }
 
 /* ─── Anime character ─── */
-/* --ctx / --cty: transparent-padding compensation set by JS after image loads.
-   translateX(rFrac*100%) shifts right by exactly the right blank area (100% = own width),
-   translateY(bFrac*100%) shifts down by the bottom blank area.
-   This eliminates drift caused by auto-width changing with viewport height. */
+/* Anchor-point system (like a game-engine pivot):
+   --ctx / --cty are set by JS to (1-ax)*100% / (1-ay)*100%.
+   translateX/Y with these % values (own width/height) shifts the image
+   so that the anchor point (ax,ay) inside the image sits exactly at the
+   CSS right/bottom position — viewport-size-independent, no drift. */
 #character {
   position: fixed;
   bottom: 0;
