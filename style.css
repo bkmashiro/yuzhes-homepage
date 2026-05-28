@@ -473,9 +473,13 @@ html, body {
 #ascii-widget {
   position: absolute;
   overflow: hidden;
-  cursor: move;
+  cursor: default;
   z-index: 1; /* behind icons */
   user-select: none;
+}
+#ascii-widget.edit-mode {
+  cursor: move;
+  outline: 1px dashed rgba(0, 255, 200, 0.25);
 }
 #ascii-widget-pre {
   margin: 0;
@@ -496,6 +500,10 @@ html, body {
   width: 12px; height: 12px;
   cursor: se-resize;
   background: linear-gradient(135deg, transparent 50%, rgba(0,255,200,0.3) 50%);
+  display: none; /* shown only in edit mode */
+}
+#ascii-widget.edit-mode #ascii-widget-grip {
+  display: block;
 }
 
 /* ─── System tray ─── */

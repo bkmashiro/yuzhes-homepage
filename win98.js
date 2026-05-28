@@ -785,38 +785,52 @@ function initCRTScan() {
 
 /* ─── ASCII art desktop widget ─── */
 const ASCII_STORAGE_KEY = 'ascii-widget';
+const ASCII_TEXTS = [mikuArt1, mikuArt2];
 
 function initAsciiWidget() {
   const desktop = document.getElementById('win98-desktop');
   if (!desktop) return;
 
-  // Pick one randomly from the inlined texts
-  const ASCII_TEXTS = [mikuArt1, mikuArt2];
-  const text = ASCII_TEXTS[Math.floor(Math.random() * ASCII_TEXTS.length)];
-
-  // Restore saved state
+  // Restore saved state; default: centered, slightly upper area
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem(ASCII_STORAGE_KEY) || '{}'); } catch {}
 
+  const W = saved.width  ?? 320;
+  const H = saved.height ?? 400;
+  // Compute centered default after a tick so desktop has rendered dimensions
+  const defaultLeft = () => Math.max(20, Math.round((desktop.clientWidth  - W) / 2));
+  const defaultTop  = () => Math.max(20, Math.round((desktop.clientHeight - H) / 3));
+
   const widget = document.createElement('div');
   widget.id = 'ascii-widget';
-  widget.style.left   = `${saved.left   ?? 20}px`;
-  widget.style.top    = `${saved.top    ?? 20}px`;
-  widget.style.width  = `${saved.width  ?? 320}px`;
-  widget.style.height = `${saved.height ?? 400}px`;
+  widget.style.width  = `${W}px`;
+  widget.style.height = `${H}px`;
+  // Position set after desktop is in DOM
+  widget.style.left = `${saved.left ?? defaultLeft()}px`;
+  widget.style.top  = `${saved.top  ?? defaultTop()}px`;
+
+  let currentArtIdx = Math.floor(Math.random() * ASCII_TEXTS.length);
 
   const pre = document.createElement('pre');
   pre.id = 'ascii-widget-pre';
-  pre.textContent = text;
+  pre.textContent = ASCII_TEXTS[currentArtIdx];
   widget.appendChild(pre);
 
-  // Resize grip (bottom-right corner)
+  // Resize grip (visible only in edit mode via CSS)
   const grip = document.createElement('div');
   grip.id = 'ascii-widget-grip';
   grip.title = 'Resize';
   widget.appendChild(grip);
 
   desktop.insertBefore(widget, desktop.firstChild); // behind icons
+
+  // If no saved position yet, recompute after desktop is painted
+  if (saved.left == null) {
+    requestAnimationFrame(() => {
+      widget.style.left = `${defaultLeft()}px`;
+      widget.style.top  = `${defaultTop()}px`;
+    });
+  }
 
   function save() {
     localStorage.setItem(ASCII_STORAGE_KEY, JSON.stringify({
@@ -827,8 +841,16 @@ function initAsciiWidget() {
     }));
   }
 
-  // Drag to move
+  /* ── Edit mode toggle ── */
+  let editMode = false;
+  function setEditMode(on) {
+    editMode = on;
+    widget.classList.toggle('edit-mode', on);
+  }
+
+  /* ── Drag to move (edit mode only) ── */
   widget.addEventListener('mousedown', e => {
+    if (!editMode) return;
     if (e.target === grip) return;
     e.preventDefault(); e.stopPropagation();
     const toDesktop = window._viewportToDesktop || ((x, y) => [x, y]);
@@ -839,17 +861,14 @@ function initAsciiWidget() {
       widget.style.left = `${ox + cx - sx}px`;
       widget.style.top  = `${oy + cy - sy}px`;
     }
-    function onUp() {
-      save();
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
-    }
+    function onUp() { save(); document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); }
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
   });
 
-  // Resize grip
+  /* ── Resize grip (edit mode only) ── */
   grip.addEventListener('mousedown', e => {
+    if (!editMode) return;
     e.preventDefault(); e.stopPropagation();
     const toDesktop = window._viewportToDesktop || ((x, y) => [x, y]);
     const [sx, sy] = toDesktop(e.clientX, e.clientY);
@@ -859,13 +878,27 @@ function initAsciiWidget() {
       widget.style.width  = `${Math.max(80,  ow + cx - sx)}px`;
       widget.style.height = `${Math.max(60, oh + cy - sy)}px`;
     }
-    function onUp() {
-      save();
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
-    }
+    function onUp() { save(); document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); }
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
+  });
+
+  /* ── Right-click context menu ── */
+  widget.addEventListener('contextmenu', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    showContextMenu(e.clientX, e.clientY, [
+      editMode
+        ? { label: '✓ Lock in place', action: () => setEditMode(false) }
+        : { label: '✎ Move / Resize', action: () => setEditMode(true) },
+      { label: '🎨 Change Art', action: () => {
+          currentArtIdx = (currentArtIdx + 1) % ASCII_TEXTS.length;
+          pre.textContent = ASCII_TEXTS[currentArtIdx];
+        }
+      },
+      '---',
+      { label: 'Close', action: () => widget.remove() },
+    ]);
   });
 }
 
