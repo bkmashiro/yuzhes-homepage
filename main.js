@@ -144,7 +144,7 @@ let charPadFracBottom = 0;
 
 // Speech bubble offset from anchor in natural image pixels [dx, dy]
 // Negative Y = above the anchor point (near head)
-const BUBBLE_SCENE_OFFSET = [-220, -300]; // ~head height above anchor, to the left
+const BUBBLE_SCENE_OFFSET = [-180, -300]; // above anchor; tune X to align with character mouth
 
 /**
  * Recompute character position and size from the scene coordinate system.
@@ -196,7 +196,7 @@ function updateCharacterLayout() {
   if (speechBubble) {
     const bubbleVpX = rect.left + (CHAR_SCENE_ANCHOR[0] + BUBBLE_SCENE_OFFSET[0]) * coverScale + offX;
     const bubbleVpY = rect.top  + (CHAR_SCENE_ANCHOR[1] + BUBBLE_SCENE_OFFSET[1]) * coverScale + offY;
-    speechBubble.style.left = `${bubbleVpX - 200}px`; // max-width is 200px, right-align
+    speechBubble.style.left = `${bubbleVpX}px`;
     speechBubble.style.top  = `${bubbleVpY}px`;
   }
 }
@@ -484,7 +484,7 @@ if (window.location.search.includes('calibrate')) {
     if (speechBubble) {
       const bubbleVpX = rect.left + (calAnchor[0] + BUBBLE_SCENE_OFFSET[0]) * coverScale + offX;
       const bubbleVpY = rect.top  + (calAnchor[1] + BUBBLE_SCENE_OFFSET[1]) * coverScale + offY;
-      speechBubble.style.left = `${bubbleVpX - 200}px`;
+      speechBubble.style.left = `${bubbleVpX}px`;
       speechBubble.style.top  = `${bubbleVpY}px`;
     }
   };
