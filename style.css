@@ -363,11 +363,13 @@ html, body {
 }
 
 /* ─── CRT effects overlay (non-interactive) ─── */
+/* Sits inside #screen-content so the matrix3d transform + clip-path
+   confine it to the CRT screen area — no bleed onto the photo background. */
 #crt-effects {
   position: absolute;
-  inset: 0;
+  inset: 0;          /* covers the full screen-content area; clip-path trims edges */
   pointer-events: none;
-  z-index: 5;
+  z-index: 50;       /* above win98-desktop contents */
   /* Scanlines */
   background: repeating-linear-gradient(
     to bottom,
