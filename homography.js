@@ -148,6 +148,11 @@ function applyScreenTransform(corners, imgW, imgH, edgeMids = [0, 0, 0, 0]) {
   const src = [[E, E], [E + w, E], [E + w, E + h], [E, E + h]];
   screenEl.style.transform = toCSSMatrix3d(src, dst);
 
+  // screen-content background fills the expand area so outward-bowing
+  // clip regions show the desktop colour instead of transparency
+  screenEl.style.background = '#008080';
+  screenEl.style.overflow   = 'visible'; // don't clip the expand area
+
   // Win98 desktop fills only the actual screen area
   if (desktop) {
     desktop.style.position = 'absolute';
