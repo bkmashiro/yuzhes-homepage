@@ -334,34 +334,33 @@ html, body {
 }
 
 /* ─── Anime character ─── */
-/* Anchor-point system (like a game-engine pivot):
-   --ctx / --cty are set by JS to (1-ax)*100% / (1-ay)*100%.
-   translateX/Y with these % values (own width/height) shifts the image
-   so that the anchor point (ax,ay) inside the image sits exactly at the
-   CSS right/bottom position — viewport-size-independent, no drift. */
+/* Positioned fixed bottom-right. JS computes pixel-based translateX/Y
+   to push transparent padding off-screen so the visible body stays
+   anchored to the viewport corner. Recomputed on resize. */
 #character {
   position: fixed;
   bottom: 0;
-  right: 8vw;
+  right: 0;
   height: 45vh;
   width: auto;
   z-index: 40;
   pointer-events: none;
   filter: drop-shadow(0 4px 24px rgba(0,0,0,0.5));
   opacity: 0;
-  transform: translateX(var(--ctx, 0%)) translateY(calc(var(--cty, 0%) + 20px));
+  /* JS sets --char-tx and --char-ty (px) for transparent-padding compensation */
+  transform: translateX(var(--char-tx, 0px)) translateY(calc(var(--char-ty, 0px) + 20px));
   transition: opacity 0.8s ease 0.4s, transform 0.8s ease 0.4s;
 }
 #character.visible {
   opacity: 1;
-  transform: translateX(var(--ctx, 0%)) translateY(var(--cty, 0%));
+  transform: translateX(var(--char-tx, 0px)) translateY(var(--char-ty, 0px));
 }
 
 /* ─── Speech bubble ─── */
 #speech-bubble {
   position: fixed;   /* matches character — viewport-anchored */
   bottom: 42vh;
-  right: calc(8vw + 60px);
+  right: 60px;
   background: #fff;
   border: 2px solid #333;
   border-radius: 12px;

@@ -112,28 +112,41 @@ if (closeupImg.complete && closeupImg.naturalWidth) {
 /* ─── Init Win98 desktop ─── */
 initWin98();
 
-/* ─── Character anchor point ─────────────────────────────────────────────
- * Like a game-engine pivot: (ax, ay) is the normalised point within the
- * image that should sit at the CSS position anchor (right/bottom edges).
- *   (0,0) = image top-left   (1,1) = image bottom-right
+/* ─── Character transparent-padding compensation ────────────────────────
+ * The character image has transparent padding around the visible body.
+ * We scan for the rightmost and bottommost opaque pixels, then compute
+ * pixel offsets to push the transparent area off-screen so the visible
+ * body stays anchored to the bottom-right of the viewport.
  *
- * CSS right:0 / bottom:0 docks the IMAGE's outer bottom-right corner.
- * We then apply:
- *   translateX((1-ax)*100%)  — shifts image right so the ax column aligns
- *   translateY((1-ay)*100%)  — shifts image down  so the ay row    aligns
- * Because 100% = own width/height, this is viewport-size-independent.
+ * Math:
+ *   renderedH = 45vh (in px)
+ *   renderedW = naturalW / naturalH * renderedH
+ *   rightPadPx  = (naturalW - rightmostOpaqueX) / naturalH * renderedH
+ *   bottomPadPx = (naturalH - bottommostOpaqueY) / naturalH * renderedH
+ *   transform: translateX(rightPadPx) translateY(bottomPadPx)
  *
- * CHAR_ANCHOR can be set manually or left null for auto-detection
- * (canvas alpha scan finds the bounding box of non-transparent pixels).
+ * Recomputed on resize since 45vh changes in absolute pixels.
  * ──────────────────────────────────────────────────────────────────────── */
-const CHAR_ANCHOR = { x: null, y: null }; // null = auto-detect from alpha
 
-function applyCharacterAnchor(ax, ay) {
-  character.style.setProperty('--ctx', `${((1 - ax) * 100).toFixed(3)}%`);
-  character.style.setProperty('--cty', `${((1 - ay) * 100).toFixed(3)}%`);
+// Normalised transparent padding fractions (set by alpha scan or fallback)
+let charPadRight  = 0; // (naturalW - rightmostOpaqueX) / naturalW
+let charPadBottom = 0; // (naturalH - bottommostOpaqueY) / naturalH
+
+function updateCharacterTransform() {
+  if (!character) return;
+  const renderedH = window.innerHeight * 0.45; // 45vh in px
+  const nw = character.naturalWidth  || 1;
+  const nh = character.naturalHeight || 1;
+  const renderedW = (nw / nh) * renderedH;
+
+  const rightPx  = charPadRight  * renderedW;
+  const bottomPx = charPadBottom * renderedH;
+
+  character.style.setProperty('--char-tx', `${rightPx.toFixed(1)}px`);
+  character.style.setProperty('--char-ty', `${bottomPx.toFixed(1)}px`);
 }
 
-function detectCharacterAnchor() {
+function detectCharacterPadding() {
   try {
     const img = character;
     const w = img.naturalWidth, h = img.naturalHeight;
@@ -150,21 +163,26 @@ function detectCharacterAnchor() {
           if (y > maxY) maxY = y;
         }
 
-    // Anchor = rightmost / bottommost non-transparent pixel (normalised)
-    applyCharacterAnchor((maxX + 1) / w, (maxY + 1) / h);
+    // Fraction of image that is transparent padding on each side
+    charPadRight  = (w - (maxX + 1)) / w;
+    charPadBottom = (h - (maxY + 1)) / h;
   } catch (e) {
-    console.warn('Character anchor auto-detect failed:', e);
-    applyCharacterAnchor(0.5, 1.0); // fallback: bottom-centre
+    console.warn('Character padding auto-detect failed:', e);
+    charPadRight  = 0;
+    charPadBottom = 0;
   }
+  updateCharacterTransform();
 }
 
 if (character) {
-  const ax = CHAR_ANCHOR.x, ay = CHAR_ANCHOR.y;
-  const run = () => (ax !== null && ay !== null)
-    ? applyCharacterAnchor(ax, ay)
-    : detectCharacterAnchor();
+  const run = () => {
+    detectCharacterPadding();
+    updateCharacterTransform();
+  };
   if (character.complete && character.naturalWidth) run();
   else character.addEventListener('load', run);
+
+  window.addEventListener('resize', updateCharacterTransform);
 }
 
 /* ─── Speech bubble content ─── */
@@ -198,7 +216,6 @@ if (window.location.search.includes('calibrate')) {
 
   /**
    * Compute object-fit:cover layout — uniform coverScale with centred offsets.
-   * All calibration handle positioning and drag reading use this same math.
    */
   function calCoverInfo() {
     const r   = closeupImg.getBoundingClientRect();
@@ -328,208 +345,79 @@ if (window.location.search.includes('calibrate')) {
   repositionMidHandles();
   window.addEventListener('resize', repositionMidHandles);
 
-  /* ── Character position/scale calibration state ── */
-  // Declared here (before getDock/getCharRenderSize are called) to avoid TDZ.
-  const charState = { right: 8, bottom: 0, height: 45 };
-
-  /* ── Anchor calibration state ── */
-  // anchorCal: which normalised point of the image maps to the dock position.
-  // Declared early so updatePanel() (called from applyCharState()) can read it.
-  let anchorCal = { x: 0.5, y: 1.0 };
-
-  /* ── Anchor handle (⊕) ── drag to set pivot point on character ── */
-  // The ⊕ sits at the dock position (= where the anchor maps on screen).
-  // Drag it to the character's butt/feet; on release the character shifts
-  // so that exact image point becomes the new dock.
-  const anchorHandle = document.createElement('div');
-  anchorHandle.style.cssText = `
-    position:fixed; width:22px; height:22px; margin:-11px;
-    border-radius:50%; border:2px solid #fff;
-    background:rgba(255,80,80,0.85); cursor:crosshair; z-index:10000;
-    display:flex; align-items:center; justify-content:center;
-    font-size:13px; box-shadow:0 0 8px rgba(255,80,80,0.9);
-  `;
-  anchorHandle.textContent = '\u2295'; // ⊕
-  anchorHandle.title = 'Drag onto character pivot (butt/feet) then release';
-  document.body.appendChild(anchorHandle);
-
-  function getDock() {
-    return {
-      x: window.innerWidth  * (1 - charState.right  / 100),
-      y: window.innerHeight * (1 - charState.bottom / 100),
-    };
-  }
-  function getCharRenderSize() {
-    const h = window.innerHeight * (charState.height / 100);
-    const w = character.naturalWidth / character.naturalHeight * h;
-    return { w, h };
-  }
-
-  function repositionAnchorHandle() {
-    const d = getDock();
-    anchorHandle.style.left = `${d.x}px`;
-    anchorHandle.style.top  = `${d.y}px`;
-  }
-  repositionAnchorHandle();
-  window.addEventListener('resize', repositionAnchorHandle);
-
-  anchorHandle.addEventListener('mousedown', e => {
-    e.preventDefault(); e.stopPropagation();
-    anchorHandle.style.cursor = 'grabbing';
-    // Freeze image position at drag start
-    const snap = { ax: anchorCal.x, ay: anchorCal.y };
-    const dock  = getDock();
-    const { w, h } = getCharRenderSize();
-
-    const onMove = e => {
-      // Move handle with mouse (visual feedback only — image stays frozen)
-      anchorHandle.style.left = `${e.clientX}px`;
-      anchorHandle.style.top  = `${e.clientY}px`;
-    };
-    const onUp = e => {
-      // Compute image coordinate at release position (based on frozen image layout)
-      const dx = e.clientX - dock.x;
-      const dy = e.clientY - dock.y;
-      anchorCal.x = Math.max(0, Math.min(1, snap.ax + dx / w));
-      anchorCal.y = Math.max(0, Math.min(1, snap.ay + dy / h));
-      applyCharacterAnchor(anchorCal.x, anchorCal.y);
-      anchorHandle.style.cursor = 'crosshair';
-      repositionAnchorHandle(); // snap back to dock
-      updatePanel();
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
-    };
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
-  });
-
-  // Make character visible without animation; anchor transform (CSS) handles position
+  // Make character visible immediately without animation
   if (character) {
     character.classList.add('visible');
     character.style.transition = 'none';
   }
 
-  function applyCharState() {
-    if (!character) return;
-    character.style.right  = `${charState.right}%`;
-    character.style.bottom = `${charState.bottom}%`;
-    character.style.height = `${charState.height}%`;
-    // opacity/transform handled by .visible class + anchor CSS vars
-    updatePanel();
-  }
-  applyCharState();
+  /* ── Character drag — drag the character body directly ── */
+  // Track extra right/bottom offset (in px) applied on top of the auto-detected padding
+  let calOffsetRight = 0;
+  let calOffsetBottom = 0;
 
-  function initAnchorCal() {
-    if (!character || !character.complete || !character.naturalWidth) return;
-    try {
-      const w = character.naturalWidth, h = character.naturalHeight;
-      const cv = document.createElement('canvas');
-      cv.width = w; cv.height = h;
-      cv.getContext('2d').drawImage(character, 0, 0);
-      const d = cv.getContext('2d').getImageData(0, 0, w, h).data;
-      let maxX = 0, maxY = 0;
-      for (let y = 0; y < h; y++)
-        for (let x = 0; x < w; x++)
-          if (d[(y * w + x) * 4 + 3] > 16) {
-            if (x > maxX) maxX = x;
-            if (y > maxY) maxY = y;
-          }
-      anchorCal.x = (maxX + 1) / w;
-      anchorCal.y = (maxY + 1) / h;
-    } catch (e) { /* leave defaults */ }
-    applyCharacterAnchor(anchorCal.x, anchorCal.y);
+  function applyCalOffset() {
+    if (!character) return;
+    const renderedH = window.innerHeight * 0.45;
+    const nw = character.naturalWidth || 1;
+    const nh = character.naturalHeight || 1;
+    const renderedW = (nw / nh) * renderedH;
+
+    const rightPx  = charPadRight  * renderedW + calOffsetRight;
+    const bottomPx = charPadBottom * renderedH + calOffsetBottom;
+
+    character.style.setProperty('--char-tx', `${rightPx.toFixed(1)}px`);
+    character.style.setProperty('--char-ty', `${bottomPx.toFixed(1)}px`);
     updatePanel();
   }
+
+  // Enable pointer events on character for dragging in calibration mode
   if (character) {
-    if (character.complete && character.naturalWidth) initAnchorCal();
-    else character.addEventListener('load', initAnchorCal);
+    character.style.pointerEvents = 'auto';
+    character.style.cursor = 'grab';
+
+    character.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      character.style.cursor = 'grabbing';
+      const startX = e.clientX, startY = e.clientY;
+      const startOR = calOffsetRight, startOB = calOffsetBottom;
+
+      const onMove = e => {
+        // Dragging right increases the right offset (pushes image right = more off-screen)
+        // But intuitively dragging right should move the visible body right,
+        // which means DECREASING the right offset (less compensation)
+        calOffsetRight  = startOR - (e.clientX - startX);
+        calOffsetBottom = startOB - (e.clientY - startY);
+        applyCalOffset();
+      };
+      const onUp = () => {
+        character.style.cursor = 'grab';
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      };
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
   }
 
   function updatePanel() {
+    const renderedH = window.innerHeight * 0.45;
+    const nw = (character && character.naturalWidth) || 1;
+    const nh = (character && character.naturalHeight) || 1;
+    const renderedW = (nw / nh) * renderedH;
+    const totalRightPx  = charPadRight  * renderedW + calOffsetRight;
+    const totalBottomPx = charPadBottom * renderedH + calOffsetBottom;
+
     panel.innerHTML =
-      `<b style="color:#ffd700">&#x2699; Calibration</b>  <span style="color:#888;font-size:10px">&#x25CF;corners  &#x25C6;edges  &#x2605;char  &#x2295;anchor</span><br><br>` +
+      `<b style="color:#ffd700">&#x2699; Calibration</b>  <span style="color:#888;font-size:10px">&#x25CF;corners  &#x25C6;edges  drag character to reposition</span><br><br>` +
       `<span style="color:#88ffcc">const SCREEN_CORNERS = [<br>` +
       cal.map((c,i) => `&nbsp;&nbsp;[${c[0]}, ${c[1]}], <span style="color:#555">// ${LABELS[i]}</span>`).join('<br>') +
       `<br>];<br><br>const EDGE_MIDS = [${mids.map(v=>Math.round(v)).join(', ')}];<br>` +
       `<span style="color:#888">// top, right, bottom, left</span><br><br>` +
-      `<span style="color:#ffcc44">// Character position<br>` +
-      `right:${charState.right.toFixed(1)}% bottom:${charState.bottom.toFixed(1)}% height:${charState.height.toFixed(1)}%<br><br>` +
-      `// Anchor (pivot point, normalised 0..1)<br>` +
-      `CHAR_ANCHOR = { x: ${anchorCal.x.toFixed(4)}, y: ${anchorCal.y.toFixed(4)} }</span></span>`;
+      `<span style="color:#ffcc44">// Character padding (auto-detected)<br>` +
+      `padRight: ${(charPadRight * 100).toFixed(1)}%  padBottom: ${(charPadBottom * 100).toFixed(1)}%<br>` +
+      `// Rendered offset: right=${totalRightPx.toFixed(1)}px  bottom=${totalBottomPx.toFixed(1)}px<br>` +
+      `// Manual adjustment: right=${calOffsetRight.toFixed(1)}px  bottom=${calOffsetBottom.toFixed(1)}px</span></span>`;
   }
   updatePanel();
-
-  // Character drag handle
-  const charHandle = document.createElement('div');
-  charHandle.style.cssText = `
-    position:fixed; width:20px; height:20px; margin:-10px;
-    background:#ffcc44; border-radius:50%; cursor:grab; z-index:10000;
-    display:flex; align-items:center; justify-content:center;
-    font-size:13px; box-shadow:0 0 8px #ffcc44;
-  `;
-  charHandle.textContent = '\u2605';
-  document.body.appendChild(charHandle);
-
-  // Scale handle
-  const scaleHandle = document.createElement('div');
-  scaleHandle.style.cssText = `
-    position:fixed; width:16px; height:16px; margin:-8px;
-    background:#ff88ff; border-radius:50%; cursor:ns-resize; z-index:10000;
-    display:flex; align-items:center; justify-content:center;
-    font-size:10px; box-shadow:0 0 6px #ff88ff;
-  `;
-  scaleHandle.textContent = '\u2195';
-  document.body.appendChild(scaleHandle);
-
-  function repositionCharHandles() {
-    const r = sceneCloseup.getBoundingClientRect();
-    const bx = r.right  - (charState.right  / 100) * r.width;
-    const by = r.bottom - (charState.bottom / 100) * r.height;
-    charHandle.style.left = `${bx}px`;
-    charHandle.style.top  = `${by}px`;
-    scaleHandle.style.left = `${bx}px`;
-    scaleHandle.style.top  = `${by - 30}px`;
-  }
-  repositionCharHandles();
-  window.addEventListener('resize', repositionCharHandles);
-
-  charHandle.addEventListener('mousedown', e => {
-    e.preventDefault(); e.stopPropagation();
-    charHandle.style.cursor = 'grabbing';
-    const startX = e.clientX, startY = e.clientY;
-    const startR = charState.right, startB = charState.bottom;
-    const r = sceneCloseup.getBoundingClientRect();
-    const onMove = e => {
-      charState.right  = Math.max(0, startR  - (e.clientX - startX) / r.width  * 100);
-      charState.bottom = Math.max(0, startB  - (e.clientY - startY) / r.height * 100);
-      applyCharState();
-      repositionCharHandles();
-    };
-    const onUp = () => {
-      charHandle.style.cursor = 'grab';
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
-    };
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
-  });
-
-  scaleHandle.addEventListener('mousedown', e => {
-    e.preventDefault(); e.stopPropagation();
-    scaleHandle.style.cursor = 'grabbing';
-    const startY = e.clientY, startH = charState.height;
-    const r = sceneCloseup.getBoundingClientRect();
-    const onMove = e => {
-      charState.height = Math.max(5, Math.min(100, startH - (e.clientY - startY) / r.height * 100));
-      applyCharState();
-      repositionCharHandles();
-    };
-    const onUp = () => {
-      scaleHandle.style.cursor = 'ns-resize';
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
-    };
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
-  });
 }
