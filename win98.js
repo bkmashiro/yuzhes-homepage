@@ -54,6 +54,12 @@ const DESKTOP_ICONS = [
       saySpeech("It's empty... just like my inbox \u{1F4ED}");
     },
   },
+  {
+    id: 'guestbook',
+    label: 'guestbook.txt',
+    icon: ICONS.notepad,
+    onOpen: openGuestbook,
+  },
 ];
 
 /* ─── Window manager state ─── */
@@ -325,7 +331,7 @@ function openMyComputer() {
   }
   openWindow('my-computer', 'My Computer', ICONS.myComputer, `
     <div style="display:grid;grid-template-columns:repeat(3,64px);gap:16px;justify-content:center;padding:16px">
-      <div class="desktop-icon" ondblclick="openProjects()">
+      <div class="desktop-icon" id="mycomp-projects-icon">
         <img src="${ICONS.folder}" alt=""><span>Projects</span>
       </div>
       <div class="desktop-icon">
@@ -333,51 +339,130 @@ function openMyComputer() {
       </div>
     </div>
   `, { width: 300, height: 200 });
+  // Attach dblclick after window is created
+  const projIcon = document.getElementById('mycomp-projects-icon');
+  if (projIcon) projIcon.addEventListener('dblclick', () => openProjects());
 }
 
 function openProjects() {
   openWindow('projects', 'Projects', ICONS.folder, `
-    <div class="inset-panel" style="height:100%;overflow-y:auto;box-sizing:border-box">
-      <p><b>&#x1F4C1; neoblog</b> — personal blog & essays</p>
-      <p style="margin-top:8px"><b>&#x1F4C1; yuzhes-homepage</b> — this site!</p>
-      <p style="margin-top:8px"><b>&#x1F4C1; research</b> — WASM runtime project</p>
-      <p style="margin-top:16px;color:#808080;font-size:11px">More coming soon...</p>
+    <div class="inset-panel" style="height:100%;overflow-y:auto;box-sizing:border-box;padding:4px">
+      <div style="display:flex;align-items:center;gap:6px;padding:4px 4px;border-bottom:1px solid #c0c0c0">
+        <img src="${ICONS.folder}" style="width:20px;height:20px;image-rendering:pixelated">
+        <span style="flex:1;font-size:12px"><b>yuzhes-homepage</b> — this site</span>
+        <button class="win98-small-btn" onclick="window.open('https://github.com/bkmashiro/yuzhes-homepage','_blank')" style="font-size:10px;padding:2px 6px;cursor:pointer;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;font-family:inherit">Open</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;padding:4px 4px;border-bottom:1px solid #c0c0c0">
+        <img src="${ICONS.folder}" style="width:20px;height:20px;image-rendering:pixelated">
+        <span style="flex:1;font-size:12px"><b>neoblog</b> — personal blog engine</span>
+        <button class="win98-small-btn" onclick="window.openProjectDetail('neoblog')" style="font-size:10px;padding:2px 6px;cursor:pointer;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;font-family:inherit">Info</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;padding:4px 4px;border-bottom:1px solid #c0c0c0">
+        <img src="${ICONS.folder}" style="width:20px;height:20px;image-rendering:pixelated">
+        <span style="flex:1;font-size:12px"><b>wasm-py-runtime</b> — WebAssembly Python sandbox</span>
+        <button class="win98-small-btn" onclick="window.openProjectDetail('wasm')" style="font-size:10px;padding:2px 6px;cursor:pointer;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;font-family:inherit">Info</button>
+      </div>
+      <p style="margin-top:10px;color:#808080;font-size:10px;padding:0 4px">More coming soon...</p>
     </div>
-  `, { width: 300, height: 240 });
+  `, { width: 360, height: 200 });
 }
 
 function openAbout() {
-  openWindow('about', 'About Me — Notepad', ICONS.notepad, `
-    <div class="inset-panel" style="height:100%;overflow-y:auto;box-sizing:border-box;background:#fff;font-family:monospace;font-size:12px;white-space:pre-wrap">Hi, I'm yuzhes (bkmashiro).
+  openWindow('about', 'about.txt — Notepad', ICONS.notepad, `
+    <div class="inset-panel" style="height:100%;overflow-y:auto;box-sizing:border-box;background:#fff;font-family:monospace;font-size:12px;white-space:pre-wrap">============================================
+  about.txt  —  yuzhes (bkmashiro)
+============================================
 
-I'm a CS student interested in:
-  - Programming languages & runtimes
-  - Systems programming
-  - Web technologies
-  - Music & generative art
+Hi! I'm a CS grad student who loves
+building things at the intersection of
+systems, languages, and the web.
 
-Currently working on a WebAssembly
-sandboxed Python runtime for my
-master's research.
+INTERESTS:
+  * Programming language runtimes
+  * WebAssembly & sandboxing
+  * Web technologies & creative coding
+  * Music, generative art, anime
 
-Find me at:
+CURRENTLY WORKING ON:
+  wasm-py-runtime — a research project
+  sandboxing Python inside WebAssembly
+  for my master's thesis.
+
+ALSO MADE:
+  neoblog       — personal blog engine
+  yuzhes-homepage — this very site!
+
+FIND ME:
   github.com/bkmashiro
+
+============================================
+  "It compiles on my machine"  — me, always
+============================================
     </div>
-  `, { width: 320, height: 260 });
+  `, { width: 340, height: 300 });
+  saySpeech("That's me! Nice to meet you \u{1F44B}");
 }
 
 function openInternet() {
   saySpeech("You're really using IE? Respect. \u{1F602}");
   openWindow('internet', 'Internet Explorer', ICONS.internet, `
-    <div style="text-align:center;padding:20px">
-      <p style="font-size:14px;margin-bottom:12px">&#x1F310; Links</p>
-      <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-start;text-align:left">
-        <a href="https://github.com/bkmashiro" target="_blank" style="color:#0000ff">GitHub</a>
-        <a href="#" style="color:#0000ff">Blog (neoblog)</a>
-        <a href="#" style="color:#0000ff">Research</a>
+    <div style="display:flex;flex-direction:column;height:100%;gap:0">
+      <div style="display:flex;align-items:center;gap:4px;padding:4px;background:#c0c0c0;border-bottom:1px solid #808080">
+        <span style="font-size:10px;font-weight:bold">Address:</span>
+        <div class="inset-panel" style="flex:1;padding:2px 6px;font-size:11px;font-family:monospace;background:#fff">about:me</div>
+        <button style="font-size:10px;padding:2px 8px;font-family:inherit;cursor:pointer;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff">Go</button>
+      </div>
+      <div class="inset-panel" style="flex:1;overflow-y:auto;background:#fff;padding:12px">
+        <p style="font-size:14px;font-weight:bold;color:#000080;margin-bottom:8px">&#x1F310; yuzhes.exe — Personal Page</p>
+        <hr style="border:none;border-top:1px solid #808080;margin:8px 0">
+        <p style="font-size:12px;margin-bottom:10px">Links &amp; Social:</p>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <a href="https://github.com/bkmashiro" target="_blank" style="color:#0000ff;font-size:12px;text-decoration:underline">&#x1F4BB; GitHub — github.com/bkmashiro</a>
+          <a href="#" style="color:#0000ff;font-size:12px;text-decoration:underline">&#x1F4DD; Blog — neoblog (coming soon)</a>
+          <a href="#" style="color:#0000ff;font-size:12px;text-decoration:underline">&#x1F52C; Research — wasm-py-runtime</a>
+        </div>
+        <hr style="border:none;border-top:1px solid #808080;margin:10px 0">
+        <p style="color:#808080;font-size:10px">Best viewed in Internet Explorer 6.0 at 640x480</p>
       </div>
     </div>
-  `, { width: 280, height: 200 });
+  `, { width: 320, height: 240 });
+}
+
+function openGuestbook() {
+  saySpeech("You found my guestbook! \u{1F4D6}");
+  openWindow('guestbook', 'guestbook.txt — Notepad', ICONS.notepad, `
+    <div class="inset-panel" style="height:100%;overflow-y:auto;box-sizing:border-box;background:#fff;font-family:monospace;font-size:12px;white-space:pre-wrap">=== guestbook.txt ===
+
+[2024-01-15] anon: cool site!
+[2024-01-16] someone: this CRT effect is sick
+[2024-02-03] visitor: love the anime girl lol
+[2024-03-10] hacker: nice wasm project btw
+[2023-12-01] me: hello from the future
+
+--- sign below this line ---
+
+
+
+    </div>
+  `, { width: 320, height: 260 });
+}
+
+function openProjectDetail(project) {
+  const details = {
+    neoblog: {
+      title: 'neoblog',
+      desc: 'A personal blog engine built with modern web tech.\nMinimalist, fast, markdown-powered.\n\nStatus: active development\nStack: TypeScript, Vite',
+    },
+    wasm: {
+      title: 'wasm-py-runtime',
+      desc: 'WebAssembly Python sandbox for secure execution.\nMaster\'s research project.\n\nStatus: research / WIP\nStack: Rust, WebAssembly, Python',
+    },
+  };
+  const d = details[project];
+  if (!d) return;
+  openWindow(`project-${project}`, `${d.title} — Details`, ICONS.notepad, `
+    <div class="inset-panel" style="height:100%;overflow-y:auto;box-sizing:border-box;background:#fff;font-family:monospace;font-size:12px;white-space:pre-wrap">${d.desc}</div>
+  `, { width: 280, height: 180 });
 }
 
 /* ─── Start menu ─── */
@@ -831,4 +916,6 @@ export function initWin98() {
   window.openProjects = openProjects;
   window.openAbout = openAbout;
   window.openInternet = openInternet;
+  window.openGuestbook = openGuestbook;
+  window.openProjectDetail = openProjectDetail;
 }
