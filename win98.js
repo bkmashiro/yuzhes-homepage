@@ -8,6 +8,22 @@ import { saySpeech } from './main.js';
 import mikuArt1 from './miku-ascii-art-1.txt?raw';
 import mikuArt2 from './miku-ascii-art-2.txt?raw';
 
+let _audioCtx2 = null;
+function playTypingClick() {
+  try {
+    if (!_audioCtx2) _audioCtx2 = new (window.AudioContext||window.webkitAudioContext)();
+    const ctx = _audioCtx2;
+    const buf = ctx.createBuffer(1, ctx.sampleRate*0.03, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i=0; i<data.length; i++) data[i]=(Math.random()*2-1)*Math.exp(-i/(data.length*0.15));
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const gain = ctx.createGain(); gain.gain.value = 0.08;
+    src.connect(gain); gain.connect(ctx.destination);
+    src.start();
+  } catch(e) {}
+}
+
 /* ─── Icon pixel art (SVG data URIs) ─── */
 const ICONS = {
   myComputer: `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='4' y='4' width='24' height='18' fill='%23c0c0c0' stroke='%23000' stroke-width='1'/><rect x='6' y='6' width='20' height='14' fill='%230000aa'/><rect x='10' y='22' width='12' height='3' fill='%23c0c0c0'/><rect x='7' y='25' width='18' height='2' fill='%23808080'/></svg>`,
@@ -901,6 +917,29 @@ function showContextMenu(x, y, items) {
 function initContextMenus() {
   const desktop = document.getElementById('win98-desktop');
 
+  // Triple-click → Matrix rain
+  let tripleCount=0, tripleTimer=null;
+  desktop.addEventListener('click', ev => {
+    if (ev.target.closest('.desktop-icon,.win98-window,#taskbar,#ascii-widget')) return;
+    tripleCount++;
+    clearTimeout(tripleTimer);
+    tripleTimer=setTimeout(()=>{tripleCount=0;},500);
+    if (tripleCount>=3){tripleCount=0;startMatrixRain();}
+  });
+
+  // Rapid clicking easter egg
+  let rapidClicks=[], rapidTimer=null;
+  desktop.addEventListener('click', ev => {
+    if (ev.target.closest('.win98-window,#taskbar')) return;
+    const now=Date.now();
+    rapidClicks.push(now);
+    rapidClicks=rapidClicks.filter(t=>now-t<3000);
+    if (rapidClicks.length>=10){
+      rapidClicks=[];
+      saySpeech("Hey! Stop clicking so much! 😤", 4000, true);
+    }
+  });
+
   // Dismiss on any click
   document.addEventListener('click', dismissContextMenu);
 
@@ -1179,26 +1218,19 @@ function initStartButtonEasterEgg() {
 
 /* ─── Easter egg: Idle detection ─── */
 function initIdleEasterEgg() {
-  let idleTimer = null;
+  let idleTimer = null, screensaverTimer = null;
   let idleTriggered = false;
-  const IDLE_MS = 30000;
+  const desktop = document.getElementById('win98-desktop');
 
   function resetIdle() {
-    if (idleTriggered) return;
-    clearTimeout(idleTimer);
+    clearTimeout(idleTimer); clearTimeout(screensaverTimer);
     idleTimer = setTimeout(() => {
-      if (!idleTriggered) {
-        idleTriggered = true;
-        saySpeech("Hello? Anyone there...? \u{1F440}");
-      }
-    }, IDLE_MS);
+      if (!idleTriggered) { idleTriggered = true; saySpeech("Hello? Anyone there...? 👀"); }
+    }, 30000);
+    screensaverTimer = setTimeout(() => { startStarfield(); }, 90000);
   }
 
-  const desktop = document.getElementById('win98-desktop');
-  if (desktop) {
-    desktop.addEventListener('mousemove', resetIdle);
-    resetIdle();
-  }
+  if (desktop) { desktop.addEventListener('mousemove', resetIdle); desktop.addEventListener('click', resetIdle); resetIdle(); }
 }
 
 /* ─── System tray ─── */
@@ -1503,7 +1535,7 @@ function openMinesweeper() {
       buildGrid();
       const statusEl = document.getElementById('mine-status');
       if (statusEl) statusEl.textContent = '\uD83D\uDCA5 You lose!';
-      saySpeech("Boom! \uD83D\uDCA5 Try again?", 4000, true);
+      saySpeech("I told you not to click there... 💣", 3500, true);
       return;
     }
 
@@ -1531,7 +1563,7 @@ function openMinesweeper() {
       gameOver = true;
       const statusEl = document.getElementById('mine-status');
       if (statusEl) statusEl.textContent = '\uD83C\uDF89 You win!';
-      saySpeech("You're a genius! \uD83C\uDF89", 4000, true);
+      saySpeech("Sugoi! 🎉 You're a minesweeper pro!", 4000, true);
     }
   }
 
@@ -2007,6 +2039,95 @@ function openTerminal() {
   }
 }
 
+/* ─── Matrix Rain ─── */
+function startMatrixRain() {
+  const desktop = document.getElementById('win98-desktop');
+  if (document.getElementById('matrix-canvas')) return;
+  const canvas = document.createElement('canvas');
+  canvas.id = 'matrix-canvas';
+  canvas.style.cssText = 'position:absolute;inset:0;z-index:8000;pointer-events:none;opacity:1;transition:opacity 1s ease';
+  canvas.width = desktop.clientWidth;
+  canvas.height = desktop.clientHeight;
+  desktop.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+  const cols = Math.floor(canvas.width/14);
+  const drops = Array(cols).fill(0).map(()=>Math.floor(Math.random()*canvas.height/14));
+  const chars = 'アイウエオカキクケコサシスセソタチツテトナニヌネノ0123456789ABCDEF';
+
+  let raf, start=Date.now();
+  function draw() {
+    ctx.fillStyle='rgba(0,0,0,0.05)'; ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.font='14px monospace';
+    drops.forEach((y,i) => {
+      ctx.fillStyle='#0f0';
+      ctx.fillText(chars[Math.floor(Math.random()*chars.length)], i*14, y*14);
+      if (y*14>canvas.height&&Math.random()>0.975) drops[i]=0; else drops[i]++;
+    });
+    if (Date.now()-start<8000) raf=requestAnimationFrame(draw);
+    else { canvas.style.opacity='0'; setTimeout(()=>canvas.remove(),1000); cancelAnimationFrame(raf); }
+  }
+  raf=requestAnimationFrame(draw);
+  saySpeech('Wake up, Neo... 🐇', 5000, true);
+}
+
+/* ─── Starfield Screensaver ─── */
+function startStarfield() {
+  const desktop = document.getElementById('win98-desktop');
+  if (document.getElementById('starfield-canvas')) return;
+
+  const container = document.createElement('div');
+  container.id = 'starfield-ss';
+  container.style.cssText = 'position:absolute;inset:0;background:#000;z-index:8999;cursor:pointer;overflow:hidden';
+
+  const canvas = document.createElement('canvas');
+  canvas.id = 'starfield-canvas';
+  canvas.width = desktop.clientWidth;
+  canvas.height = desktop.clientHeight - 28;
+  canvas.style.cssText = 'position:absolute;top:0;left:0';
+  container.appendChild(canvas);
+
+  const pw = document.createElement('div');
+  pw.style.cssText = 'position:absolute;bottom:20px;left:50%;transform:translateX(-50%);background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;padding:10px 16px;font-size:12px;font-family:inherit;white-space:nowrap;display:none';
+  pw.innerHTML = '🔒 Enter Password: <input style="font-size:11px;width:80px;border:1px inset #808080;font-family:monospace" type="password"><button style="font-size:11px;font-family:inherit;padding:2px 8px;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;margin-left:4px;cursor:pointer">OK</button>';
+  container.appendChild(pw);
+  pw.querySelector('button')?.addEventListener('click', dismiss);
+
+  desktop.appendChild(container);
+
+  const ctx = canvas.getContext('2d');
+  const W=canvas.width, H=canvas.height, cx=W/2, cy=H/2;
+  const stars = Array.from({length:200},()=>({x:(Math.random()-.5)*W,y:(Math.random()-.5)*H,z:Math.random()*W,pz:0}));
+
+  let raf;
+  function draw(){
+    ctx.fillStyle='rgba(0,0,0,0.2)'; ctx.fillRect(0,0,W,H);
+    stars.forEach(s=>{
+      s.pz=s.z; s.z-=6;
+      if(s.z<=0){s.x=(Math.random()-.5)*W;s.y=(Math.random()-.5)*H;s.z=W;s.pz=W;}
+      const sx=(s.x/s.z)*W+cx, sy=(s.y/s.z)*H+cy;
+      const px=(s.x/s.pz)*W+cx, py=(s.y/s.pz)*H+cy;
+      const size=Math.max(0.5,(1-s.z/W)*2.5);
+      ctx.strokeStyle=`rgba(255,255,255,${1-s.z/W})`;
+      ctx.lineWidth=size;
+      ctx.beginPath(); ctx.moveTo(px,py); ctx.lineTo(sx,sy); ctx.stroke();
+    });
+    raf=requestAnimationFrame(draw);
+  }
+  raf=requestAnimationFrame(draw);
+
+  let shown=false;
+  function dismiss(){
+    cancelAnimationFrame(raf);
+    container.remove();
+  }
+  container.addEventListener('mousemove', ()=>{
+    if (!shown){ shown=true; pw.style.display='block'; }
+  });
+  container.addEventListener('click', e=>{
+    if (!e.target.matches('button,input')) dismiss();
+  });
+}
+
 /* ─── Init ─── */
 export function initWin98() {
   initDesktopIcons();
@@ -2037,4 +2158,11 @@ export function initWin98() {
   window.openDefrag = openDefrag;
   window.openDownloadRAM = openDownloadRAM;
   window.openY2K = openY2K;
+
+  // Typing sounds
+  document.getElementById('win98-desktop')?.addEventListener('keydown', e => {
+    if (e.target.matches('input,textarea') && !e.ctrlKey && !e.altKey && !e.metaKey) {
+      if (e.key.length===1||e.key==='Backspace'||e.key==='Enter'||e.key==='Space') playTypingClick();
+    }
+  }, true);
 }
