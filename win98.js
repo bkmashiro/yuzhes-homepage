@@ -33,6 +33,10 @@ const ICONS = {
   recycle:    `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='7' y='12' width='18' height='16' rx='1' fill='%23c0c0c0' stroke='%23808080' stroke-width='1'/><rect x='9' y='14' width='14' height='12' fill='%23fff'/><line x1='5' y1='12' x2='27' y2='12' stroke='%23808080' stroke-width='2'/><rect x='12' y='9' width='8' height='3' rx='1' fill='%23c0c0c0' stroke='%23808080' stroke-width='1'/><path d='M11 16 Q13 14 12 18' stroke='%23808080' stroke-width='1' fill='none'/><path d='M15 15 Q18 13 17 19' stroke='%23808080' stroke-width='1' fill='none'/><path d='M19 16 Q21 14 20 18' stroke='%23808080' stroke-width='1' fill='none'/></svg>`,
   winlogo:    `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='2' y='2' width='13' height='13' fill='%23ff0000'/><rect x='17' y='2' width='13' height='13' fill='%2300cc00'/><rect x='2' y='17' width='13' height='13' fill='%230000ff'/><rect x='17' y='17' width='13' height='13' fill='%23ffcc00'/></svg>`,
   mine:       `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='8' fill='%23333'/><line x1='16' y1='4' x2='16' y2='28' stroke='%23333' stroke-width='2'/><line x1='4' y1='16' x2='28' y2='16' stroke='%23333' stroke-width='2'/><line x1='8' y1='8' x2='24' y2='24' stroke='%23333' stroke-width='2'/><line x1='24' y1='8' x2='8' y2='24' stroke='%23333' stroke-width='2'/></svg>`,
+  paint:      `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='2' y='2' width='28' height='22' fill='%23fff' stroke='%23000' stroke-width='1'/><rect x='2' y='2' width='28' height='5' fill='%23c0c0c0' stroke='%23000' stroke-width='1'/><circle cx='8' cy='4.5' r='2' fill='%23f00'/><circle cx='14' cy='4.5' r='2' fill='%230a0'/><circle cx='20' cy='4.5' r='2' fill='%230000ff'/><circle cx='26' cy='4.5' r='2' fill='%23ff0'/><rect x='4' y='9' width='4' height='13' fill='%23a0522d'/><rect x='6' y='22' width='2' height='6' rx='1' fill='%23808080'/><ellipse cx='7' cy='28' rx='3' ry='1.5' fill='%23000080'/></svg>`,
+  winamp:     `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='2' y='2' width='28' height='28' rx='2' fill='%23222'/><rect x='4' y='4' width='24' height='8' fill='%23111'/><text x='5' y='10' font-family='monospace' font-size='7' fill='%2300ff00'>NOW PLAYING</text><circle cx='10' cy='20' r='5' fill='%23444'/><circle cx='10' cy='20' r='2' fill='%23222'/><path d='M20 16 L26 20 L20 24 Z' fill='%2300ff00'/></svg>`,
+  icq:        `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='10' cy='12' r='5' fill='%23ff6600'/><circle cx='22' cy='20' r='6' fill='%2300cc00'/><circle cx='10' cy='12' r='2' fill='%23fff'/><circle cx='22' cy='20' r='2.5' fill='%23fff'/></svg>`,
+  cal:        `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='2' y='4' width='28' height='26' rx='1' fill='%23fff' stroke='%23808080' stroke-width='1'/><rect x='2' y='4' width='28' height='7' fill='%23000080'/><rect x='8' y='2' width='3' height='5' rx='1' fill='%23c0c0c0'/><rect x='21' y='2' width='3' height='5' rx='1' fill='%23c0c0c0'/><text x='6' y='9' font-family='sans-serif' font-size='5' fill='%23fff' font-weight='bold'>CALENDAR</text><rect x='5' y='14' width='4' height='3' fill='%23e0e0ff'/><rect x='10' y='14' width='4' height='3' fill='%23e0e0ff'/><rect x='15' y='14' width='4' height='3' fill='%23e0e0ff'/><rect x='20' y='14' width='4' height='3' fill='%23e0e0ff'/><rect x='25' y='14' width='4' height='3' fill='%23ffd0d0'/><rect x='5' y='19' width='4' height='3' fill='%23e0e0ff'/><rect x='10' y='19' width='4' height='3' fill='%23e0e0ff'/><rect x='15' y='19' width='4' height='3' fill='%23000080'/><rect x='20' y='19' width='4' height='3' fill='%23e0e0ff'/><rect x='25' y='19' width='4' height='3' fill='%23ffd0d0'/><rect x='5' y='24' width='4' height='3' fill='%23e0e0ff'/><rect x='10' y='24' width='4' height='3' fill='%23e0e0ff'/></svg>`,
 };
 
 /* ─── Desktop icon definitions ─── */
@@ -144,6 +148,63 @@ const DESKTOP_ICONS = [
     contextItems: def => [
       { label: 'Open',        action: def.onOpen },
       { label: 'High Scores', action: openMineHighScores },
+      '---',
+      { label: 'Properties' },
+    ],
+  },
+  {
+    id: 'winamp',
+    label: 'Winamp.exe',
+    icon: ICONS.winamp,
+    onOpen: openWinamp,
+    contextItems: def => [
+      { label: 'Open',       action: def.onOpen },
+      { label: 'Play / Pause', action: def.onOpen },
+      '---',
+      { label: 'Add to Playlist', action: () => saySpeech('Playlist updated 🎵', 3000) },
+      { label: 'Properties' },
+    ],
+  },
+  {
+    id: 'paint',
+    label: 'Paint.exe',
+    icon: ICONS.paint,
+    onOpen: openPaint,
+    contextItems: def => [
+      { label: 'Open',   action: def.onOpen },
+      { label: 'Edit',   action: def.onOpen },
+      '---',
+      { label: 'Set as Wallpaper', action: () => saySpeech('Nice art! 🎨 Wallpaper set.', 3000) },
+      { label: 'Properties' },
+    ],
+  },
+  {
+    id: 'icq',
+    label: 'ICQ',
+    icon: ICONS.icq,
+    onOpen: openICQ,
+    contextItems: def => [
+      { label: 'Open',           action: def.onOpen },
+      { label: 'Add Contact…',   action: () => saySpeech('No contacts found 👻', 3000) },
+      '---',
+      { label: 'Change Status',  sub: [
+        { label: '🟢 Online',      action: () => saySpeech('Status: Online 🟢', 3000, true) },
+        { label: '🟡 Away',        action: () => saySpeech('Status: Away 🌙', 3000, true) },
+        { label: '🔴 Do Not Disturb', action: () => saySpeech('Status: DND 🔴', 3000, true) },
+        { label: '👻 Invisible',   action: () => saySpeech('You are now a ghost 👻', 3000, true) },
+      ]},
+      '---',
+      { label: 'Properties' },
+    ],
+  },
+  {
+    id: 'calendar',
+    label: 'Calendar',
+    icon: ICONS.cal,
+    onOpen: openCalendar,
+    contextItems: def => [
+      { label: 'Open',         action: def.onOpen },
+      { label: 'Today',        action: def.onOpen },
       '---',
       { label: 'Properties' },
     ],
@@ -610,6 +671,356 @@ function openGuestbook() {
   `, { width: 320, height: 260 });
 }
 
+/* ─── Winamp ─── */
+const WINAMP_PLAYLIST = [
+  { title: 'Yoko Takahashi — A Cruel Angel\'s Thesis',   dur: '1:35' },
+  { title: 'Joe Hisaishi — One Summer\'s Day',           dur: '3:22' },
+  { title: 'Nujabes — Feather',                          dur: '5:07' },
+  { title: 'Yoko Kanno — Tank!',                         dur: '3:15' },
+  { title: 'ClariS — Connect',                           dur: '4:10' },
+  { title: 'Susumu Hirasawa — Forces',                   dur: '4:33' },
+];
+let _winampTrack = 0;
+let _winampPlaying = false;
+let _winampTimer = null;
+let _winampSec = 0;
+
+function openWinamp() {
+  _winampPlaying = false;
+  clearInterval(_winampTimer);
+
+  function trackHTML() {
+    const t = WINAMP_PLAYLIST[_winampTrack];
+    const mins = Math.floor(_winampSec / 60).toString().padStart(2, '0');
+    const secs = (_winampSec % 60).toString().padStart(2, '0');
+    return `<span id="wa-time" style="font-family:monospace;color:#00ff00">${mins}:${secs}</span>
+            <span id="wa-title" style="color:#00cc00;font-size:10px;margin-left:4px;overflow:hidden;white-space:nowrap;max-width:160px;display:inline-block;text-overflow:ellipsis">${t.title}</span>`;
+  }
+
+  openWindow('winamp', 'Winamp', ICONS.winamp, `
+    <div style="background:#222;color:#0f0;font-family:monospace;font-size:11px;display:flex;flex-direction:column;height:100%;box-sizing:border-box">
+      <div style="background:#111;padding:6px 8px;border-bottom:1px solid #00ff0044">
+        <div style="font-size:9px;color:#00aa00;margin-bottom:2px">▶ NOW PLAYING</div>
+        <div id="wa-info" style="display:flex;align-items:center;gap:4px">${trackHTML()}</div>
+        <div style="margin-top:4px;background:#111;border:1px solid #00ff0033;height:6px;border-radius:2px;overflow:hidden">
+          <div id="wa-progress" style="height:100%;width:0%;background:#00ff00;transition:width 0.5s linear"></div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:center;gap:4px;padding:6px 4px;border-bottom:1px solid #00ff0022">
+        <button id="wa-prev" style="background:#333;color:#0f0;border:1px solid #555;padding:2px 8px;cursor:pointer;font-size:11px;font-family:monospace">⏮</button>
+        <button id="wa-play" style="background:#333;color:#0f0;border:1px solid #555;padding:2px 8px;cursor:pointer;font-size:11px;font-family:monospace">▶</button>
+        <button id="wa-pause" style="background:#333;color:#0f0;border:1px solid #555;padding:2px 8px;cursor:pointer;font-size:11px;font-family:monospace">⏸</button>
+        <button id="wa-stop" style="background:#333;color:#0f0;border:1px solid #555;padding:2px 8px;cursor:pointer;font-size:11px;font-family:monospace">⏹</button>
+        <button id="wa-next" style="background:#333;color:#0f0;border:1px solid #555;padding:2px 8px;cursor:pointer;font-size:11px;font-family:monospace">⏭</button>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:4px 0">
+        ${WINAMP_PLAYLIST.map((t, i) => `
+          <div class="wa-row" data-idx="${i}" style="padding:2px 8px;display:flex;justify-content:space-between;cursor:pointer;font-size:10px;${i === _winampTrack ? 'background:#004400;color:#0f0' : 'color:#009900'}">
+            <span>${(i+1).toString().padStart(2,'0')}. ${t.title}</span>
+            <span style="color:#007700">${t.dur}</span>
+          </div>`).join('')}
+      </div>
+    </div>
+  `, { width: 280, height: 260 });
+
+  function refreshDisplay() {
+    const info = document.getElementById('wa-info');
+    if (info) info.innerHTML = trackHTML();
+    const rows = document.querySelectorAll('.wa-row');
+    rows.forEach(r => {
+      const active = parseInt(r.dataset.idx) === _winampTrack;
+      r.style.background = active ? '#004400' : '';
+      r.style.color = active ? '#0f0' : '#009900';
+    });
+  }
+
+  function startPlaying() {
+    _winampPlaying = true;
+    clearInterval(_winampTimer);
+    const totalSec = WINAMP_PLAYLIST[_winampTrack].dur.split(':').reduce((a, v) => a*60 + parseInt(v), 0);
+    _winampTimer = setInterval(() => {
+      if (!document.getElementById('win-winamp')) { clearInterval(_winampTimer); return; }
+      _winampSec++;
+      if (_winampSec >= totalSec) { _winampSec = 0; _winampTrack = (_winampTrack + 1) % WINAMP_PLAYLIST.length; refreshDisplay(); }
+      const prog = document.getElementById('wa-progress');
+      if (prog) prog.style.width = `${(_winampSec / totalSec) * 100}%`;
+      const timeEl = document.getElementById('wa-time');
+      if (timeEl) timeEl.textContent = `${Math.floor(_winampSec/60).toString().padStart(2,'0')}:${(_winampSec%60).toString().padStart(2,'0')}`;
+    }, 1000);
+  }
+
+  document.getElementById('wa-play')?.addEventListener('click', () => {
+    _winampSec = 0; startPlaying(); refreshDisplay();
+    saySpeech('🎵 Winamp, it really whips the llama\'s ass!', 4000, true);
+  });
+  document.getElementById('wa-pause')?.addEventListener('click', () => {
+    _winampPlaying = !_winampPlaying;
+    if (_winampPlaying) startPlaying(); else clearInterval(_winampTimer);
+  });
+  document.getElementById('wa-stop')?.addEventListener('click', () => {
+    clearInterval(_winampTimer); _winampPlaying = false; _winampSec = 0;
+    const prog = document.getElementById('wa-progress');
+    if (prog) prog.style.width = '0%';
+    const timeEl = document.getElementById('wa-time');
+    if (timeEl) timeEl.textContent = '00:00';
+  });
+  document.getElementById('wa-prev')?.addEventListener('click', () => {
+    _winampTrack = (_winampTrack - 1 + WINAMP_PLAYLIST.length) % WINAMP_PLAYLIST.length;
+    _winampSec = 0; if (_winampPlaying) startPlaying(); refreshDisplay();
+  });
+  document.getElementById('wa-next')?.addEventListener('click', () => {
+    _winampTrack = (_winampTrack + 1) % WINAMP_PLAYLIST.length;
+    _winampSec = 0; if (_winampPlaying) startPlaying(); refreshDisplay();
+  });
+  document.querySelectorAll('.wa-row').forEach(r => {
+    r.addEventListener('dblclick', () => {
+      _winampTrack = parseInt(r.dataset.idx); _winampSec = 0;
+      startPlaying(); refreshDisplay();
+    });
+  });
+}
+
+/* ─── Paint ─── */
+function openPaint() {
+  openWindow('paint', 'Untitled — Paint', ICONS.paint, `
+    <div style="display:flex;flex-direction:column;height:100%;background:#c0c0c0;box-sizing:border-box">
+      <div style="display:flex;gap:2px;padding:2px 4px;border-bottom:1px solid #808080;align-items:center;flex-wrap:wrap">
+        <span style="font-size:10px;font-weight:bold;margin-right:4px">Color:</span>
+        ${['#000','#fff','#f00','#0f0','#00f','#ff0','#f0f','#0ff','#f80','#08f','#808080','#c0c0c0'].map(c =>
+          `<div data-color="${c}" style="width:14px;height:14px;background:${c};border:2px solid #fff;cursor:pointer;box-sizing:border-box"></div>`
+        ).join('')}
+        <span style="font-size:10px;font-weight:bold;margin-left:6px">Size:</span>
+        ${[2,4,8].map(s => `<button data-size="${s}" style="font-size:9px;font-family:inherit;padding:1px 4px;cursor:pointer;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff">${s}px</button>`).join('')}
+        <button id="paint-clear" style="font-size:9px;font-family:inherit;padding:1px 6px;cursor:pointer;margin-left:4px;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff">Clear</button>
+        <button id="paint-eraser" style="font-size:9px;font-family:inherit;padding:1px 6px;cursor:pointer;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff">Eraser</button>
+      </div>
+      <div style="flex:1;display:flex;align-items:stretch;overflow:hidden;background:#808080;padding:4px">
+        <canvas id="paint-canvas" width="400" height="300" style="background:#fff;cursor:crosshair;touch-action:none;flex:1;image-rendering:pixelated"></canvas>
+      </div>
+      <div id="paint-status" style="padding:2px 6px;font-size:10px;border-top:1px solid #808080;background:#c0c0c0">0, 0</div>
+    </div>
+  `, { width: 420, height: 320 });
+
+  const canvas = document.getElementById('paint-canvas');
+  if (!canvas) return;
+  const ctx2d = canvas.getContext('2d');
+  let painting = false;
+  let currentColor = '#000';
+  let currentSize = 4;
+  let erasing = false;
+
+  // Resize canvas to match display
+  function resizeCanvas() {
+    const parent = canvas.parentElement;
+    if (!parent) return;
+    const dpr = window.devicePixelRatio || 1;
+    const w = parent.clientWidth;
+    const h = parent.clientHeight;
+    const imgData = ctx2d.getImageData(0, 0, canvas.width, canvas.height);
+    canvas.width = w;
+    canvas.height = h;
+    ctx2d.fillStyle = '#fff';
+    ctx2d.fillRect(0, 0, w, h);
+    ctx2d.putImageData(imgData, 0, 0);
+  }
+  resizeCanvas();
+
+  function getPos(e) {
+    const r = canvas.getBoundingClientRect();
+    const src = e.touches ? e.touches[0] : e;
+    return [src.clientX - r.left, src.clientY - r.top];
+  }
+
+  canvas.addEventListener('mousedown', e => {
+    painting = true;
+    const [x, y] = getPos(e);
+    ctx2d.beginPath();
+    ctx2d.moveTo(x, y);
+  });
+  canvas.addEventListener('mousemove', e => {
+    const [x, y] = getPos(e);
+    const statusEl = document.getElementById('paint-status');
+    if (statusEl) statusEl.textContent = `${Math.round(x)}, ${Math.round(y)}`;
+    if (!painting) return;
+    ctx2d.lineWidth = currentSize;
+    ctx2d.lineCap = 'round';
+    ctx2d.strokeStyle = erasing ? '#fff' : currentColor;
+    ctx2d.lineTo(x, y);
+    ctx2d.stroke();
+    ctx2d.beginPath();
+    ctx2d.moveTo(x, y);
+  });
+  canvas.addEventListener('mouseup', () => { painting = false; });
+  canvas.addEventListener('mouseleave', () => { painting = false; });
+
+  document.querySelectorAll('[data-color]').forEach(el => {
+    el.addEventListener('click', () => {
+      erasing = false;
+      currentColor = el.dataset.color;
+      document.querySelectorAll('[data-color]').forEach(e => e.style.borderColor = '#fff');
+      el.style.borderColor = '#000080';
+      document.getElementById('paint-eraser').style.borderColor = '#fff #808080 #808080 #fff';
+    });
+  });
+  document.querySelectorAll('[data-size]').forEach(el => {
+    el.addEventListener('click', () => {
+      currentSize = parseInt(el.dataset.size);
+      document.querySelectorAll('[data-size]').forEach(e => e.style.borderColor = '#fff #808080 #808080 #fff');
+      el.style.borderColor = '#808080 #fff #fff #808080';
+    });
+  });
+  document.getElementById('paint-clear')?.addEventListener('click', () => {
+    ctx2d.fillStyle = '#fff';
+    ctx2d.fillRect(0, 0, canvas.width, canvas.height);
+    saySpeech('Clean slate! 🎨', 2000);
+  });
+  document.getElementById('paint-eraser')?.addEventListener('click', () => {
+    erasing = !erasing;
+    const btn = document.getElementById('paint-eraser');
+    if (btn) btn.style.borderColor = erasing ? '#808080 #fff #fff #808080' : '#fff #808080 #808080 #fff';
+  });
+}
+
+/* ─── ICQ Messenger ─── */
+const ICQ_HISTORY = [
+  { from: 'nujabes_fan', msg: 'yo, seen the new vocaloid drops?' },
+  { from: 'me', msg: 'not yet, link?' },
+  { from: 'nujabes_fan', msg: 'check ur miku folder lol' },
+  { from: 'system', msg: '*** wasm_enjoyer has joined ***' },
+  { from: 'wasm_enjoyer', msg: 'anyone working on their thesis?' },
+  { from: 'me', msg: 'always 😭' },
+];
+
+function openICQ() {
+  saySpeech('You\'ve got a message! 🔔', 3000, true);
+  const histHTML = ICQ_HISTORY.map(m => {
+    if (m.from === 'system') return `<div style="text-align:center;color:#808080;font-size:10px;margin:2px 0">${m.msg}</div>`;
+    const isMe = m.from === 'me';
+    return `<div style="margin:3px 0;display:flex;flex-direction:column;align-items:${isMe?'flex-end':'flex-start'}">
+      <span style="font-size:9px;color:#808080">${m.from}</span>
+      <span style="font-size:11px;background:${isMe?'#ddf':'#fff'};border:1px solid #aaa;padding:2px 6px;max-width:80%;word-break:break-word">${m.msg}</span>
+    </div>`;
+  }).join('');
+
+  openWindow('icq', 'ICQ — nujabes_fan', ICONS.icq, `
+    <div style="display:flex;flex-direction:column;height:100%;font-family:Tahoma,Arial,sans-serif">
+      <div style="background:#ff6600;color:#fff;font-size:11px;padding:4px 8px;display:flex;justify-content:space-between;align-items:center">
+        <span>🟢 Online — <b>yuzhes</b></span><span style="font-size:10px">ICQ 2000b</span>
+      </div>
+      <div id="icq-log" style="flex:1;overflow-y:auto;padding:8px;background:#f0f0f0;border:1px inset #808080;box-sizing:border-box">
+        ${histHTML}
+      </div>
+      <div style="display:flex;gap:4px;padding:4px;border-top:1px solid #808080">
+        <input id="icq-input" type="text" placeholder="Type a message..."
+          style="flex:1;font-size:11px;font-family:inherit;border:1px inset #808080;padding:2px 4px;outline:none">
+        <button id="icq-send" style="font-size:11px;font-family:inherit;padding:2px 10px;cursor:pointer;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff">Send</button>
+      </div>
+    </div>
+  `, { width: 300, height: 300 });
+
+  const replies = [
+    'lol', 'haha', 'brb', 'omg really?', 'ngl that slaps', 'same tbh', 'wait what', 'kk', '👀', 'gz!',
+    'no way', 'thats so cool', 'have u tried turning it off and on again', 'compile it again', 'touch grass first',
+  ];
+
+  function sendMsg() {
+    const input = document.getElementById('icq-input');
+    const log = document.getElementById('icq-log');
+    if (!input || !log || !input.value.trim()) return;
+    const text = input.value.trim();
+    input.value = '';
+    log.innerHTML += `<div style="margin:3px 0;display:flex;flex-direction:column;align-items:flex-end">
+      <span style="font-size:9px;color:#808080">me</span>
+      <span style="font-size:11px;background:#ddf;border:1px solid #aaa;padding:2px 6px;max-width:80%">${text}</span>
+    </div>`;
+    log.scrollTop = log.scrollHeight;
+    // Auto-reply
+    setTimeout(() => {
+      if (!document.getElementById('win-icq')) return;
+      const reply = replies[Math.floor(Math.random() * replies.length)];
+      const log2 = document.getElementById('icq-log');
+      if (log2) {
+        log2.innerHTML += `<div style="margin:3px 0;display:flex;flex-direction:column;align-items:flex-start">
+          <span style="font-size:9px;color:#808080">nujabes_fan</span>
+          <span style="font-size:11px;background:#fff;border:1px solid #aaa;padding:2px 6px;max-width:80%">${reply}</span>
+        </div>`;
+        log2.scrollTop = log2.scrollHeight;
+      }
+      saySpeech('New message! 💬', 2000);
+    }, 800 + Math.random() * 1500);
+  }
+
+  document.getElementById('icq-send')?.addEventListener('click', sendMsg);
+  document.getElementById('icq-input')?.addEventListener('keydown', e => { if (e.key === 'Enter') sendMsg(); });
+}
+
+/* ─── Calendar ─── */
+function openCalendar() {
+  const now = new Date();
+  let viewYear = now.getFullYear();
+  let viewMonth = now.getMonth();
+
+  function renderCal() {
+    const first = new Date(viewYear, viewMonth, 1);
+    const startDay = first.getDay();
+    const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+    const monthName = first.toLocaleString('en-US', { month: 'long' });
+    const isCurrentMonth = viewYear === now.getFullYear() && viewMonth === now.getMonth();
+    const today = now.getDate();
+
+    let rows = '';
+    let day = 1 - startDay;
+    for (let r = 0; r < 6; r++) {
+      let cells = '';
+      for (let c = 0; c < 7; c++, day++) {
+        const inMonth = day >= 1 && day <= daysInMonth;
+        const isToday = isCurrentMonth && day === today;
+        cells += `<td style="width:28px;height:22px;text-align:center;font-size:11px;
+          ${isToday ? 'background:#000080;color:#fff;font-weight:bold;' : inMonth ? '' : 'color:#c0c0c0;'}
+          border:1px solid #e0e0e0;cursor:${inMonth?'pointer':'default'}"
+          ${isToday ? 'title="Today!"' : ''}>${inMonth ? day : (day < 1 ? daysInMonth + day : day - daysInMonth)}</td>`;
+      }
+      rows += `<tr>${cells}</tr>`;
+      if (day > daysInMonth) break;
+    }
+
+    const calBody = document.getElementById('cal-body');
+    const calHeader = document.getElementById('cal-header');
+    if (calBody) calBody.innerHTML = rows;
+    if (calHeader) calHeader.textContent = `${monthName} ${viewYear}`;
+  }
+
+  openWindow('calendar', 'Calendar', ICONS.cal, `
+    <div style="display:flex;flex-direction:column;align-items:center;padding:8px;height:100%;box-sizing:border-box">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <button id="cal-prev" style="font-size:12px;padding:1px 8px;cursor:pointer;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;font-family:inherit">◀</button>
+        <span id="cal-header" style="font-size:12px;font-weight:bold;min-width:120px;text-align:center"></span>
+        <button id="cal-next" style="font-size:12px;padding:1px 8px;cursor:pointer;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;font-family:inherit">▶</button>
+      </div>
+      <table style="border-collapse:collapse">
+        <thead>
+          <tr>${['Su','Mo','Tu','We','Th','Fr','Sa'].map((d,i) =>
+            `<th style="width:28px;font-size:10px;padding:2px;color:${i===0||i===6?'#c00':'#000'}">${d}</th>`
+          ).join('')}</tr>
+        </thead>
+        <tbody id="cal-body"></tbody>
+      </table>
+      <p id="cal-today" style="margin-top:8px;font-size:10px;color:#808080"></p>
+    </div>
+  `, { width: 230, height: 260 });
+
+  renderCal();
+  const todayEl = document.getElementById('cal-today');
+  if (todayEl) todayEl.textContent = `Today: ${now.toDateString()}`;
+
+  document.getElementById('cal-prev')?.addEventListener('click', () => {
+    viewMonth--; if (viewMonth < 0) { viewMonth = 11; viewYear--; } renderCal();
+  });
+  document.getElementById('cal-next')?.addEventListener('click', () => {
+    viewMonth++; if (viewMonth > 11) { viewMonth = 0; viewYear++; } renderCal();
+  });
+}
+
 function openProjectDetail(project) {
   const details = {
     neoblog: {
@@ -662,6 +1073,10 @@ function initStartMenu() {
       <div class="start-menu-item" id="sm-defrag">💾 Disk Defragmenter</div>
       <div class="start-menu-item" id="sm-dlram">🧠 Download More RAM</div>
       <div class="start-menu-item" id="sm-y2k">📅 Y2K Compliance</div>
+      <div class="start-menu-item" id="sm-winamp">🎵 Winamp</div>
+      <div class="start-menu-item" id="sm-paint">🎨 Paint</div>
+      <div class="start-menu-item" id="sm-icq">💬 ICQ</div>
+      <div class="start-menu-item" id="sm-calendar">📅 Calendar</div>
       <div class="start-menu-separator"></div>
       <div class="start-menu-item" onclick="window.openShutdownDialog()">
         <img src="${ICONS.winlogo}" alt=""> Shut Down...
@@ -675,6 +1090,10 @@ function initStartMenu() {
   menu.querySelector('#sm-defrag')?.addEventListener('click', () => { menu.classList.remove('open'); openDefrag(); });
   menu.querySelector('#sm-dlram')?.addEventListener('click', () => { menu.classList.remove('open'); openDownloadRAM(); });
   menu.querySelector('#sm-y2k')?.addEventListener('click', () => { menu.classList.remove('open'); openY2K(); });
+  menu.querySelector('#sm-winamp')?.addEventListener('click', () => { menu.classList.remove('open'); openWinamp(); });
+  menu.querySelector('#sm-paint')?.addEventListener('click', () => { menu.classList.remove('open'); openPaint(); });
+  menu.querySelector('#sm-icq')?.addEventListener('click', () => { menu.classList.remove('open'); openICQ(); });
+  menu.querySelector('#sm-calendar')?.addEventListener('click', () => { menu.classList.remove('open'); openCalendar(); });
 }
 
 /* ─── Clock ─── */
@@ -1237,24 +1656,137 @@ function initIdleEasterEgg() {
 function initSystemTray() {
   const volumeBtn = document.getElementById('tray-volume');
   const networkBtn = document.getElementById('tray-network');
+  let volume = 75;
   let muted = false;
+  let activeTrayPopup = null;
+  let outsideClickHandler = null;
 
+  function showTrayPopup(id, htmlContent) {
+    // Toggle off if same popup already open
+    if (activeTrayPopup && activeTrayPopup.dataset.popupId === id) {
+      activeTrayPopup.remove(); activeTrayPopup = null;
+      if (outsideClickHandler) document.removeEventListener('mousedown', outsideClickHandler);
+      return false; // signal: closed
+    }
+    if (activeTrayPopup) { activeTrayPopup.remove(); activeTrayPopup = null; }
+
+    const desktop = document.getElementById('win98-desktop');
+    const taskbar = document.getElementById('taskbar');
+    if (!desktop || !taskbar) return false;
+
+    const popup = document.createElement('div');
+    popup.dataset.popupId = id;
+    popup.style.cssText = `
+      position:absolute;background:#c0c0c0;
+      border:2px solid;border-color:#fff #808080 #808080 #fff;
+      box-shadow:2px 2px 4px rgba(0,0,0,0.4);
+      z-index:9999;min-width:100px;
+      font-family:'W95FA',Tahoma,Arial,sans-serif;font-size:11px;
+    `;
+    popup.innerHTML = htmlContent;
+    desktop.appendChild(popup);
+
+    // Position above taskbar at right side
+    const tbH = taskbar.offsetHeight || 28;
+    popup.style.bottom = `${tbH + 4}px`;
+    popup.style.right = '4px';
+    activeTrayPopup = popup;
+
+    if (outsideClickHandler) document.removeEventListener('mousedown', outsideClickHandler);
+    outsideClickHandler = e => {
+      if (popup.contains(e.target) || e.target === volumeBtn || e.target.closest('#tray-volume') || e.target === networkBtn || e.target.closest('#tray-network')) return;
+      popup.remove(); activeTrayPopup = null;
+      document.removeEventListener('mousedown', outsideClickHandler);
+    };
+    setTimeout(() => document.addEventListener('mousedown', outsideClickHandler), 0);
+    return true; // signal: opened
+  }
+
+  /* ── Volume popup ── */
   if (volumeBtn) {
     volumeBtn.addEventListener('click', e => {
       e.stopPropagation();
-      muted = !muted;
-      if (muted) {
-        saySpeech("Shh, I'm working... \uD83E\uDD2B", 4000, true);
-      } else {
-        saySpeech("Volume: 100% \uD83D\uDD0A", 3000, true);
-      }
+      const opened = showTrayPopup('vol', `
+        <div style="padding:8px;display:flex;flex-direction:column;align-items:center;gap:6px">
+          <div style="font-size:11px;font-weight:bold">🔊 Volume</div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+            <input id="vol-slider" type="range" min="0" max="100" value="${muted ? 0 : volume}"
+              style="height:80px;cursor:pointer;accent-color:#000080"
+              orient="vertical">
+            <span id="vol-pct" style="font-family:monospace;font-size:12px">${muted ? 0 : volume}%</span>
+          </div>
+          <button id="vol-mute-btn" style="width:100%;font-size:10px;font-family:inherit;cursor:pointer;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;padding:2px 4px">
+            ${muted ? '🔈 Unmute' : '🔇 Mute'}
+          </button>
+        </div>
+      `);
+      if (!opened) return;
+
+      // Vertical slider via writing-mode (CSS fallback for browsers that don't support orient attr)
+      const slider = document.getElementById('vol-slider');
+      if (slider) slider.style.writingMode = 'vertical-lr';
+      if (slider) slider.style.direction = 'rtl';
+
+      document.getElementById('vol-slider')?.addEventListener('input', e => {
+        volume = parseInt(e.target.value);
+        muted = volume === 0;
+        const pctEl = document.getElementById('vol-pct');
+        if (pctEl) pctEl.textContent = `${volume}%`;
+        const muteBtn = document.getElementById('vol-mute-btn');
+        if (muteBtn) muteBtn.textContent = muted ? '🔈 Unmute' : '🔇 Mute';
+      });
+
+      document.getElementById('vol-mute-btn')?.addEventListener('click', () => {
+        muted = !muted;
+        const sl = document.getElementById('vol-slider');
+        const pctEl = document.getElementById('vol-pct');
+        const muteBtn = document.getElementById('vol-mute-btn');
+        if (sl) sl.value = muted ? 0 : volume;
+        if (pctEl) pctEl.textContent = `${muted ? 0 : volume}%`;
+        if (muteBtn) muteBtn.textContent = muted ? '🔈 Unmute' : '🔇 Mute';
+        saySpeech(muted ? 'Shh, I\'m working... 🤫' : `Volume: ${volume}% 🔊`, 3000, true);
+      });
     });
   }
 
+  /* ── Network popup ── */
   if (networkBtn) {
     networkBtn.addEventListener('click', e => {
       e.stopPropagation();
-      saySpeech("Connected to: localhost \uD83C\uDF10", 3000, true);
+      const packets = Math.floor(Math.random() * 99999);
+      const ping = 12 + Math.floor(Math.random() * 8);
+      const opened = showTrayPopup('net', `
+        <div style="padding:10px;min-width:180px">
+          <div style="font-size:11px;font-weight:bold;margin-bottom:6px">🌐 Network Status</div>
+          <div style="background:#fff;border:1px inset #808080;padding:6px;font-family:monospace;font-size:10px;display:flex;flex-direction:column;gap:3px">
+            <div>Status: <span style="color:#008000;font-weight:bold">Connected</span></div>
+            <div>IP: 127.0.0.1</div>
+            <div>Speed: 56,600 bps</div>
+            <div>Packets sent: ${packets.toLocaleString()}</div>
+            <div id="net-ping">Ping: <span id="net-ping-val">${ping} ms</span></div>
+          </div>
+          <div style="display:flex;gap:4px;margin-top:6px">
+            <button id="net-ping-btn" style="flex:1;font-size:10px;font-family:inherit;cursor:pointer;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;padding:2px">Ping</button>
+            <button id="net-diag-btn" style="flex:1;font-size:10px;font-family:inherit;cursor:pointer;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;padding:2px">Diagnose</button>
+          </div>
+        </div>
+      `);
+      if (!opened) return;
+
+      document.getElementById('net-ping-btn')?.addEventListener('click', () => {
+        const pingVal = document.getElementById('net-ping-val');
+        if (pingVal) { pingVal.textContent = 'pinging...'; pingVal.style.color = '#808080'; }
+        setTimeout(() => {
+          if (!pingVal) return;
+          const ms = 8 + Math.floor(Math.random() * 200);
+          pingVal.textContent = `${ms} ms`;
+          pingVal.style.color = ms < 50 ? '#008000' : ms < 120 ? '#c07000' : '#c00000';
+        }, 800 + Math.random() * 1200);
+      });
+
+      document.getElementById('net-diag-btn')?.addEventListener('click', () => {
+        saySpeech('Diagnosing network... 🔌 Cause: user error.', 4000, true);
+      });
     });
   }
 }
@@ -2158,6 +2690,10 @@ export function initWin98() {
   window.openDefrag = openDefrag;
   window.openDownloadRAM = openDownloadRAM;
   window.openY2K = openY2K;
+  window.openWinamp = openWinamp;
+  window.openPaint = openPaint;
+  window.openICQ = openICQ;
+  window.openCalendar = openCalendar;
 
   // Typing sounds
   document.getElementById('win98-desktop')?.addEventListener('keydown', e => {

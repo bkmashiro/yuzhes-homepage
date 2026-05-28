@@ -479,6 +479,16 @@ html, body {
   box-shadow: 0 1px 0 #fff;
 }
 
+/* ─── System tray popups ─── */
+/* The popup div is created inline in JS; this just handles the range input */
+#vol-slider {
+  writing-mode: vertical-lr;
+  direction: rtl;
+  height: 80px;
+  cursor: pointer;
+  accent-color: #000080;
+}
+
 /* ─── CRT scan line effect ─── */
 #crt-scan {
   position: absolute;
