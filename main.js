@@ -13,20 +13,20 @@
  */
 
 const SCREEN_CORNERS = [
-  [317,  278],  // top-left
-  [1065, 290],  // top-right
-  [1079, 821],  // bottom-right
-  [338,  869],  // bottom-left
+  [316,   40],  // top-left
+  [1065,  63],  // top-right
+  [1075, 988],  // bottom-right
+  [338,  1070], // bottom-left
 ];
 
 // Edge midpoint offsets in image-natural px.
 // Positive = bow OUTWARD (convex, away from screen centre) — correct for CRT glass.
 // Negative = bow inward.  |value| must be < CLIP_EXPAND (80px rendered).
 const EDGE_MIDS = [
-  20,  // top    edge
-  12,  // right  edge
-  20,  // bottom edge
-  12,  // left   edge
+  39,  // top    edge
+  18,  // right  edge
+  29,  // bottom edge
+   4,  // left   edge
 ];
 
 // Natural resolution of assets/closeup.jpg
@@ -83,6 +83,9 @@ function zoomIntoScreen(e) {
     if (speechBubble) {
       setTimeout(() => speechBubble.classList.add('visible'), 600);
     }
+
+    // Apply CRT warp now that the desktop has rendered dimensions
+    setTimeout(() => applyCRTWarp(), 50);
   }, 900);
 
   zoomHint.style.opacity = '0';
@@ -127,6 +130,10 @@ if (closeupImg.complete && closeupImg.naturalWidth) {
 
 /* ─── Init Win98 desktop ─── */
 initWin98();
+
+/* ─── CRT barrel warp ─── */
+// Applied after entering closeup (win98-desktop has layout by then)
+// and on resize (handled inside warp.js)
 
 /* ─── Speech bubble content ─── */
 if (speechBubble) {
