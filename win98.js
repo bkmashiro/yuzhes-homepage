@@ -483,46 +483,109 @@ function openMyComputer() {
       <div class="win-icon" data-action="openProjects">
         <img src="${ICONS.folder}" alt=""><span>Projects</span>
       </div>
-      <div class="win-icon">
+      <div class="win-icon" data-action="openDocuments">
         <img src="${ICONS.folder}" alt=""><span>Documents</span>
       </div>
-      <div class="win-icon">
+      <div class="win-icon" data-action="openC">
         <img src="${ICONS.myComputer}" alt=""><span>(C:)</span>
       </div>
+      <div class="win-icon" data-action="openPaint">
+        <img src="${ICONS.paint}" alt=""><span>Paint.exe</span>
+      </div>
+      <div class="win-icon" data-action="openWinamp">
+        <img src="${ICONS.winamp}" alt=""><span>Winamp.exe</span>
+      </div>
     </div>
-  `, { width: 320, height: 200 });
-  // Attach dblclick via delegation after window is created
+  `, { width: 360, height: 230 });
   const win = document.getElementById('win-my-computer');
   if (win) {
     win.addEventListener('dblclick', e => {
       const icon = e.target.closest('.win-icon[data-action]');
       if (!icon) return;
-      if (icon.dataset.action === 'openProjects') openProjects();
+      const actions = {
+        openProjects: openProjects,
+        openDocuments: openDocuments,
+        openC: openCDrive,
+        openPaint: openPaint,
+        openWinamp: openWinamp,
+      };
+      actions[icon.dataset.action]?.();
     });
   }
 }
 
-function openProjects() {
-  openWindow('projects', 'Projects', ICONS.folder, `
-    <div class="inset-panel" style="height:100%;overflow-y:auto;box-sizing:border-box;padding:4px">
-      <div style="display:flex;align-items:center;gap:6px;padding:4px 4px;border-bottom:1px solid #c0c0c0">
-        <img src="${ICONS.folder}" style="width:20px;height:20px;image-rendering:pixelated">
-        <span style="flex:1;font-size:12px"><b>yuzhes-homepage</b> — this site</span>
-        <button class="win98-small-btn" onclick="window.open('https://github.com/bkmashiro/yuzhes-homepage','_blank')" style="font-size:10px;padding:2px 6px;cursor:pointer;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;font-family:inherit">Open</button>
+function openDocuments() {
+  openWindow('documents', 'Documents', ICONS.folder, `
+    <div class="inset-panel" style="height:100%;overflow-y:auto;box-sizing:border-box;background:#fff;font-family:monospace;font-size:12px">
+      <div style="display:flex;flex-wrap:wrap;gap:16px;padding:12px;align-items:flex-start">
+        <div class="win-icon" style="cursor:pointer" ondblclick="window.openAbout?.()">
+          <img src="${ICONS.notepad}" alt=""><span>about.txt</span>
+        </div>
+        <div class="win-icon" style="cursor:pointer" ondblclick="window.openGuestbook?.()">
+          <img src="${ICONS.notepad}" alt=""><span>guestbook.txt</span>
+        </div>
+        <div class="win-icon" style="cursor:pointer" ondblclick="window.openNotepadPersist?.()">
+          <img src="${ICONS.notepad}" alt=""><span>notes.txt</span>
+        </div>
       </div>
-      <div style="display:flex;align-items:center;gap:6px;padding:4px 4px;border-bottom:1px solid #c0c0c0">
-        <img src="${ICONS.folder}" style="width:20px;height:20px;image-rendering:pixelated">
-        <span style="flex:1;font-size:12px"><b>neoblog</b> — personal blog engine</span>
-        <button class="win98-small-btn" onclick="window.openProjectDetail('neoblog')" style="font-size:10px;padding:2px 6px;cursor:pointer;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;font-family:inherit">Info</button>
-      </div>
-      <div style="display:flex;align-items:center;gap:6px;padding:4px 4px;border-bottom:1px solid #c0c0c0">
-        <img src="${ICONS.folder}" style="width:20px;height:20px;image-rendering:pixelated">
-        <span style="flex:1;font-size:12px"><b>wasm-py-runtime</b> — WebAssembly Python sandbox</span>
-        <button class="win98-small-btn" onclick="window.openProjectDetail('wasm')" style="font-size:10px;padding:2px 6px;cursor:pointer;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;font-family:inherit">Info</button>
-      </div>
-      <p style="margin-top:10px;color:#808080;font-size:10px;padding:0 4px">More coming soon...</p>
     </div>
-  `, { width: 360, height: 200 });
+  `, { width: 300, height: 200 });
+}
+
+function openCDrive() {
+  openWindow('c-drive', 'Local Disk (C:)', ICONS.myComputer, `
+    <div class="inset-panel" style="height:100%;overflow-y:auto;box-sizing:border-box;background:#fff">
+      <div style="display:flex;flex-wrap:wrap;gap:16px;padding:12px;align-items:flex-start">
+        <div class="win-icon"><img src="${ICONS.folder}" alt=""><span>Windows</span></div>
+        <div class="win-icon"><img src="${ICONS.folder}" alt=""><span>Program Files</span></div>
+        <div class="win-icon"><img src="${ICONS.folder}" alt=""><span>My Documents</span></div>
+        <div class="win-icon"><img src="${ICONS.folder}" alt=""><span>Temp</span></div>
+        <div class="win-icon" ondblclick="window.openFormatDisk?.()" style="cursor:pointer">
+          <img src="${ICONS.myComputer}" alt=""><span>autoexec.bat</span>
+        </div>
+      </div>
+      <div style="padding:4px 12px;border-top:1px solid #c0c0c0;font-size:10px;color:#808080;font-family:monospace">
+        5 objects | 4.2 GB free of 4.3 GB
+      </div>
+    </div>
+  `, { width: 320, height: 220 });
+  saySpeech('Don\'t touch system32 👀', 3000, true);
+}
+
+const PROJECTS = [
+  { name: 'yuzhes-homepage', desc: 'This site — retro Win98 CRT homepage', url: 'https://github.com/bkmashiro/yuzhes-homepage', icon: ICONS.internet },
+  { name: 'blog', desc: 'baka_mashiro\'s blog — programming, life, and everything', url: 'https://blog.yuzhes.com', icon: ICONS.notepad },
+  { name: 'tela', desc: 'LLM-native HTML page composer with layout primitives + MCP server', url: 'https://github.com/bkmashiro/tela', icon: ICONS.folder },
+  { name: 'loom', desc: 'LLM execution runtime — parallel plan execution via streaming notation', url: 'https://github.com/bkmashiro/loom', icon: ICONS.folder },
+  { name: 'datalog', desc: 'Datalog engine for Go — facts, Horn clause rules, fixpoint eval', url: 'https://github.com/bkmashiro/datalog', icon: ICONS.folder },
+  { name: 'witness', desc: 'Deterministic I/O recording and replay for Go tests', url: 'https://github.com/bkmashiro/witness', icon: ICONS.folder },
+  { name: 'logograph', desc: 'Interactive TUI dependency map for Go, Python, TypeScript', url: 'https://github.com/bkmashiro/logograph', icon: ICONS.folder },
+  { name: 'go-labs', desc: '25 zero-dependency generic Go libraries (Go 1.22+)', url: 'https://github.com/bkmashiro/go-labs', icon: ICONS.folder },
+  { name: 'wasi-wheels', desc: 'Python native extension wheels cross-compiled for wasm32-wasip1', url: 'https://github.com/bkmashiro/wasi-wheels', icon: ICONS.folder },
+  { name: 'smart-extract', desc: 'Windows context-menu tool for intelligent encrypted archive extraction', url: 'https://github.com/bkmashiro/smart-extract', icon: ICONS.folder },
+];
+
+function openProjects() {
+  const rowsHTML = PROJECTS.map(p => `
+    <div style="display:flex;align-items:center;gap:6px;padding:4px 6px;border-bottom:1px solid #c0c0c0">
+      <img src="${p.icon}" style="width:16px;height:16px;image-rendering:pixelated;flex-shrink:0">
+      <span style="flex:1;font-size:11px;overflow:hidden"><b>${p.name}</b> — <span style="color:#444">${p.desc}</span></span>
+      <button onclick="window.open('${p.url}','_blank')"
+        style="flex-shrink:0;font-size:10px;padding:1px 6px;cursor:pointer;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;font-family:inherit">
+        Open
+      </button>
+    </div>
+  `).join('');
+
+  openWindow('projects', 'Projects — github.com/bkmashiro', ICONS.folder, `
+    <div class="inset-panel" style="height:100%;overflow-y:auto;box-sizing:border-box;padding:0">
+      <div style="padding:4px 6px;background:#000080;color:#fff;font-size:10px;display:flex;justify-content:space-between">
+        <span>📁 bkmashiro's projects</span>
+        <a href="https://github.com/bkmashiro" target="_blank" style="color:#adf;font-size:10px">github.com/bkmashiro</a>
+      </div>
+      ${rowsHTML}
+    </div>
+  `, { width: 440, height: 320 });
 }
 
 function openAbout() {
@@ -576,8 +639,9 @@ function openInternet() {
         <p style="font-size:12px;margin-bottom:10px">Links &amp; Social:</p>
         <div style="display:flex;flex-direction:column;gap:6px">
           <a href="https://github.com/bkmashiro" target="_blank" style="color:#0000ff;font-size:12px;text-decoration:underline">&#x1F4BB; GitHub — github.com/bkmashiro</a>
-          <a href="#" style="color:#0000ff;font-size:12px;text-decoration:underline">&#x1F4DD; Blog — neoblog (coming soon)</a>
-          <a href="#" style="color:#0000ff;font-size:12px;text-decoration:underline">&#x1F52C; Research — wasm-py-runtime</a>
+          <a href="https://blog.yuzhes.com" target="_blank" style="color:#0000ff;font-size:12px;text-decoration:underline">&#x1F4DD; Blog — blog.yuzhes.com</a>
+          <a href="https://github.com/bkmashiro/wasi-wheels" target="_blank" style="color:#0000ff;font-size:12px;text-decoration:underline">&#x1F52C; wasi-wheels — Python WASM native extensions</a>
+          <a href="https://github.com/bkmashiro/tela" target="_blank" style="color:#0000ff;font-size:12px;text-decoration:underline">&#x1F5A5; tela — LLM-native HTML composer</a>
         </div>
         <hr style="border:none;border-top:1px solid #808080;margin:10px 0">
         <p style="color:#808080;font-size:10px">Best viewed in Internet Explorer 6.0 at 640x480</p>
@@ -1362,9 +1426,67 @@ function initContextMenus() {
   // Dismiss on any click
   document.addEventListener('click', dismissContextMenu);
 
+  // Helper: rename an icon's label span
+  function startRename(labelSpan) {
+    labelSpan.contentEditable = 'true';
+    labelSpan.focus();
+    const sel = window.getSelection();
+    const range = document.createRange();
+    range.selectNodeContents(labelSpan);
+    sel.removeAllRanges();
+    sel.addRange(range);
+    const finish = () => { labelSpan.contentEditable = 'false'; };
+    labelSpan.addEventListener('blur', finish, { once: true });
+    labelSpan.addEventListener('keydown', ev => {
+      if (ev.key === 'Enter') { ev.preventDefault(); labelSpan.blur(); }
+      if (ev.key === 'Escape') { ev.preventDefault(); labelSpan.blur(); }
+    }, { once: true });
+  }
+
+  // Helper: delete (or reject) a desktop icon
+  function deleteIcon(iconEl) {
+    const allIcons = Array.from(document.querySelectorAll('#desktop-icons .desktop-icon'));
+    const idx = allIcons.indexOf(iconEl);
+    const def = DESKTOP_ICONS[idx];
+    if (def) {
+      // System icon — refuse to delete
+      saySpeech('You can\'t delete that! 🚫 It\'s a system icon.', 4000, true);
+    } else {
+      // User-created — actually delete
+      iconEl.style.transition = 'opacity 0.3s, transform 0.3s';
+      iconEl.style.opacity = '0';
+      iconEl.style.transform = 'scale(0.5)';
+      setTimeout(() => iconEl.remove(), 300);
+      saySpeech('Deleted! 🗑️', 2000);
+    }
+  }
+
   // Desktop right-click
   desktop.addEventListener('contextmenu', e => {
-    // Don't show on windows, inputs, links
+    // Allow right-click on .win-icon inside windows
+    const clickedWinIcon = e.target.closest('.win-icon');
+    if (clickedWinIcon) {
+      e.preventDefault();
+      e.stopPropagation();
+      const actionKey = clickedWinIcon.dataset.action;
+      const actionMap = {
+        openProjects: openProjects, openDocuments: openDocuments,
+        openC: openCDrive, openPaint: openPaint, openWinamp: openWinamp,
+      };
+      const openFn = actionMap[actionKey] ?? null;
+      const label = clickedWinIcon.querySelector('span')?.textContent ?? 'File';
+      showContextMenu(e.clientX, e.clientY, [
+        { label: `Open "${label}"`, action: openFn ?? (() => saySpeech(`Opening ${label}... 📂`, 2000)) },
+        '---',
+        { label: 'Rename', action: () => startRename(clickedWinIcon.querySelector('span')) },
+        { label: 'Copy',   action: () => saySpeech(`Copied ${label} to clipboard 📋`, 2500) },
+        '---',
+        { label: 'Properties' },
+      ]);
+      return;
+    }
+
+    // Don't show on other window content (but not win-icon — handled above)
     if (e.target.closest('.win98-window, input, textarea, a')) return;
     e.preventDefault();
     e.stopPropagation();
@@ -1375,7 +1497,7 @@ function initContextMenus() {
       const allIcons = Array.from(document.querySelectorAll('#desktop-icons .desktop-icon'));
       const idx = allIcons.indexOf(clickedIcon);
       const def = DESKTOP_ICONS[idx];
-      const items = def?.contextItems
+      const baseItems = def?.contextItems
         ? def.contextItems(def)
         : [
             { label: 'Open', action: def?.onOpen ?? null },
@@ -1385,11 +1507,15 @@ function initContextMenus() {
               { label: 'Desktop (create shortcut)' },
             ]},
             '---',
-            { label: 'Delete' },
-            { label: 'Rename' },
-            '---',
             { label: 'Properties' },
           ];
+      // Inject working Rename + Delete into every desktop icon menu
+      const items = [
+        ...baseItems,
+        '---',
+        { label: 'Rename', action: () => startRename(clickedIcon.querySelector('span')) },
+        { label: 'Delete', action: () => deleteIcon(clickedIcon) },
+      ];
       showContextMenu(e.clientX, e.clientY, items);
     } else {
       // Desktop background context menu
@@ -2694,6 +2820,11 @@ export function initWin98() {
   window.openPaint = openPaint;
   window.openICQ = openICQ;
   window.openCalendar = openCalendar;
+  window.openDocuments = openDocuments;
+  window.openCDrive = openCDrive;
+  window.openAbout = openAbout;
+  window.openGuestbook = openGuestbook;
+  window.openNotepadPersist = openNotepadPersist;
 
   // Typing sounds
   document.getElementById('win98-desktop')?.addEventListener('keydown', e => {
