@@ -3253,3 +3253,1235 @@ export function openRansomware() {
     saySpeech('Don\'t worry, it\'s just a prank! 👻', 3500, true);
   });
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   NEW FEATURES
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─── Outlook Express ─── */
+export function openOutlookExpress() {
+  const EMAILS = [
+    {
+      from: 'Microsoft Corporation',
+      subject: 'Welcome to Outlook Express 5!',
+      unread: true,
+      body: `Welcome to Outlook Express 5!\n\nThank you for choosing Microsoft Outlook Express, the world's most popular email client.\n\nWith Outlook Express you can:\n• Send and receive email\n• Read newsgroups\n• Chat with friends and family\n\nFor help, visit support.microsoft.com\n\nBest regards,\nThe Microsoft Team`,
+    },
+    {
+      from: 'Hotmail Team',
+      subject: 'You have 1,847 unread messages',
+      unread: true,
+      body: `Dear Hotmail Member,\n\nYour inbox currently has 1,847 unread messages.\n\nYour mailbox is 98.7% full. Please delete some messages or upgrade to Hotmail Plus for just $9.99/month!\n\nAlso: you may have won a FREE vacation! Click here to claim your prize.\n\nHotmail Team\nA Microsoft Company`,
+    },
+    {
+      from: 'AOL Member Services',
+      subject: 'FREE Hours! 1000 hours of AOL for FREE!!!',
+      unread: false,
+      body: `YOU HAVE BEEN SELECTED!!!\n\nCongratulations! You are one of the lucky few to receive 1,000 FREE HOURS of AOL!\n\nSimply install the enclosed CD-ROM and get online TODAY!\n\nBut wait — there's MORE! Sign up now and get:\n✓ 1000 free hours (first month)\n✓ Free email @aol.com\n✓ AIM Instant Messenger\n✓ Parental Controls\n\nOFFER EXPIRES: NEVER (we'll keep mailing these forever)\n\nAOL Member Services`,
+    },
+    {
+      from: 'Nigerian Prince',
+      subject: 'URGENT: Business Proposal',
+      unread: true,
+      body: `DEAR FRIEND,\n\nI AM PRINCE ADEBAYO OKONKWO, SON OF THE LATE GENERAL SANI OKONKWO OF NIGERIA. I WRITE TO YOU WITH UTMOST URGENCY AND CONFIDENCE.\n\nI HAVE IN MY POSSESSION THE SUM OF $45,000,000 USD (FORTY FIVE MILLION DOLLARS) WHICH I NEED TO TRANSFER URGENTLY OUT OF MY COUNTRY.\n\nI REQUIRE YOUR ASSISTANCE TO RECEIVE THIS MONEY IN YOUR BANK ACCOUNT. FOR YOUR ASSISTANCE, YOU WILL RECEIVE 30% OF THE TOTAL SUM.\n\nKINDLY RESPOND WITH YOUR:\n- FULL NAME\n- BANK ACCOUNT NUMBER\n- DATE OF BIRTH\n- MOTHER'S MAIDEN NAME\n- SOCIAL SECURITY NUMBER\n\nGOD BLESS YOU,\nPRINCE ADEBAYO OKONKWO`,
+    },
+    {
+      from: 'mom@home.net',
+      subject: 'Are you eating enough?',
+      unread: false,
+      body: `Honey,\n\nAre you eating enough? I made your favorite casserole. Your father and I haven't heard from you in a week.\n\nAlso your cousin Billy got a real job at the bank. Just saying.\n\nDid you remember to install that anti-virus software I sent you? The CD is still in the envelope I mailed.\n\nCall me when you get this.\n\nLove,\nMom\n\nP.S. Forward this email to 10 friends and you'll have good luck for a year! Grandma says it works.`,
+    },
+    {
+      from: 'Bill Gates',
+      subject: 'Re: Windows 98 feedback',
+      unread: false,
+      body: `Thanks for the feedback on Windows 98!\n\nWe're always working to improve our products. The team has noted your concern about the "fatal error" that occurs every 45 minutes.\n\nRest assured, Windows 98 Second Edition will address many of these issues. We expect it to crash 23% less frequently.\n\nAlso, I'm giving away $1,000 to everyone who forwards this email. This is totally real. I can track emails.\n\nBest,\nBill Gates\nCEO, Microsoft Corporation\nbillg@microsoft.com`,
+    },
+  ];
+
+  let selectedIdx = null;
+
+  function msgRowHTML(email, i) {
+    const unreadStyle = email.unread ? 'font-weight:bold;' : '';
+    const unreadIcon = email.unread ? '●' : ' ';
+    return `<div class="oe-msg-row" data-idx="${i}" style="
+      display:grid;grid-template-columns:16px 1fr 1fr;
+      padding:2px 4px;cursor:pointer;font-size:11px;${unreadStyle}
+      border-bottom:1px solid #e0e0e0;box-sizing:border-box;
+    ">
+      <span style="color:#000080">${unreadIcon}</span>
+      <span style="overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${email.from}</span>
+      <span style="overflow:hidden;white-space:nowrap;text-overflow:ellipsis;color:${email.unread?'#000':'#444'}">${email.subject}</span>
+    </div>`;
+  }
+
+  openWindow('outlook-express', 'Inbox - Outlook Express', ICONS.internet, `
+    <div style="display:flex;flex-direction:column;height:100%;font-size:11px;font-family:inherit;background:#c0c0c0">
+      <!-- Toolbar -->
+      <div style="display:flex;gap:2px;padding:2px 4px;border-bottom:2px solid #808080;align-items:center">
+        <button id="oe-newmail" style="display:flex;flex-direction:column;align-items:center;padding:2px 8px;font-size:10px;font-family:inherit;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;cursor:pointer;gap:1px">
+          <span style="font-size:16px">✉</span>New Mail
+        </button>
+        <button class="oe-tb-btn" style="display:flex;flex-direction:column;align-items:center;padding:2px 8px;font-size:10px;font-family:inherit;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;cursor:pointer;gap:1px">
+          <span style="font-size:16px">↩</span>Reply
+        </button>
+        <button class="oe-tb-btn" style="display:flex;flex-direction:column;align-items:center;padding:2px 8px;font-size:10px;font-family:inherit;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;cursor:pointer;gap:1px">
+          <span style="font-size:16px">→</span>Forward
+        </button>
+        <button class="oe-tb-btn" style="display:flex;flex-direction:column;align-items:center;padding:2px 8px;font-size:10px;font-family:inherit;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;cursor:pointer;gap:1px">
+          <span style="font-size:16px">🗑</span>Delete
+        </button>
+      </div>
+      <!-- Main area: folder tree + message list -->
+      <div style="display:flex;flex:1;overflow:hidden;border-bottom:2px solid #808080">
+        <!-- Folder tree -->
+        <div style="width:140px;flex-shrink:0;border-right:2px solid #808080;overflow-y:auto;background:#fff;padding:4px">
+          <div style="font-weight:bold;font-size:11px;padding:2px 0">📁 Local Folders</div>
+          <div class="oe-folder selected-folder" style="padding:2px 4px 2px 12px;cursor:pointer;background:#000080;color:#fff">📥 Inbox (3)</div>
+          <div class="oe-folder" style="padding:2px 4px 2px 12px;cursor:pointer">📤 Sent Items</div>
+          <div class="oe-folder" style="padding:2px 4px 2px 12px;cursor:pointer">📝 Drafts</div>
+          <div class="oe-folder" style="padding:2px 4px 2px 12px;cursor:pointer">🗑 Deleted Items</div>
+          <div class="oe-folder" style="padding:2px 4px 2px 12px;cursor:pointer">📨 Outbox</div>
+        </div>
+        <!-- Right panel -->
+        <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+          <!-- Message list header -->
+          <div style="display:grid;grid-template-columns:16px 1fr 1fr;padding:2px 4px;background:#c0c0c0;border-bottom:1px solid #808080;font-size:10px;font-weight:bold">
+            <span>!</span><span>From</span><span>Subject</span>
+          </div>
+          <!-- Message list -->
+          <div id="oe-msg-list" style="flex:1;overflow-y:auto;background:#fff;max-height:160px">
+            ${EMAILS.map((e, i) => msgRowHTML(e, i)).join('')}
+          </div>
+          <!-- Preview pane -->
+          <div id="oe-preview" style="flex:1;background:#fff;border-top:3px solid #808080;padding:8px;overflow-y:auto;min-height:80px;font-family:'Courier New',monospace;font-size:11px;color:#333;white-space:pre-wrap">
+            <span style="color:#808080;font-style:italic">Click a message to read it.</span>
+          </div>
+        </div>
+      </div>
+      <!-- Status bar -->
+      <div style="padding:2px 6px;font-size:10px;background:#c0c0c0;border-top:1px solid #808080">
+        6 messages, 3 unread
+      </div>
+    </div>
+  `, { width: 600, height: 450 });
+
+  // Toolbar buttons — demo toast
+  document.querySelectorAll('.oe-tb-btn').forEach(btn => {
+    btn.addEventListener('click', () => saySpeech('Feature not available in demo 😅', 3000, true));
+  });
+
+  // New Mail button — play ding + toast
+  document.getElementById('oe-newmail')?.addEventListener('click', () => {
+    try {
+      const ctx = getAudioCtx();
+      const t = ctx.currentTime;
+      [523, 659, 784].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
+        osc.frequency.value = freq;
+        osc.type = 'sine';
+        g.gain.setValueAtTime(0.2, t + i * 0.12);
+        g.gain.linearRampToValueAtTime(0, t + i * 0.12 + 0.25);
+        osc.connect(g); g.connect(ctx.destination);
+        osc.start(t + i * 0.12); osc.stop(t + i * 0.12 + 0.3);
+      });
+    } catch(e) {}
+    saySpeech("You've got mail! 📧 (Feature not available in demo)", 4000, true);
+  });
+
+  // Message click → show preview
+  document.getElementById('oe-msg-list')?.addEventListener('click', e => {
+    const row = e.target.closest('.oe-msg-row');
+    if (!row) return;
+    const idx = parseInt(row.dataset.idx);
+    selectedIdx = idx;
+    const email = EMAILS[idx];
+    if (!email) return;
+
+    // Highlight selected row
+    document.querySelectorAll('.oe-msg-row').forEach(r => r.style.background = '');
+    row.style.background = '#000080';
+    row.style.color = '#fff';
+    row.style.fontWeight = 'normal';
+
+    // Show in preview pane
+    const preview = document.getElementById('oe-preview');
+    if (preview) {
+      preview.innerHTML = `<div style="border-bottom:1px solid #c0c0c0;margin-bottom:6px;padding-bottom:4px;font-family:inherit;font-size:11px">
+        <div><b>From:</b> ${email.from}</div>
+        <div><b>To:</b> you@hotmail.com</div>
+        <div><b>Subject:</b> ${email.subject}</div>
+      </div><div style="white-space:pre-wrap;font-family:'Courier New',monospace;font-size:11px">${email.body}</div>`;
+    }
+  });
+}
+
+/* ─── ICQ Buddy List ─── */
+export function openICQBuddyList() {
+  const BUDDIES = [
+    { name: 'xX_DaRkAnGeL_Xx', status: 'Away', statusMsg: 'away 4 a bit brb' },
+    { name: 'sk8er_boi_2003',   status: 'Away', statusMsg: 'skateboarding ✌️' },
+    { name: 'cutiepie4ever',    status: 'Away', statusMsg: 'lol ttyl' },
+    { name: 'l33t_h4x0r',       status: 'Away', statusMsg: 'hacking the mainframe' },
+  ];
+
+  openWindow('icq-buddy', 'ICQ - Buddy List', ICONS.icq, `
+    <div style="display:flex;flex-direction:column;height:100%;background:#e8f4e8;font-family:inherit;font-size:11px">
+      <!-- Header -->
+      <div style="background:#009900;color:#fff;padding:4px 8px;font-weight:bold;font-size:12px;display:flex;justify-content:space-between;align-items:center">
+        <span>💬 ICQ</span>
+        <span style="font-size:9px">UIN: 123456789</span>
+      </div>
+      <!-- My status -->
+      <div style="padding:4px 8px;background:#ccffcc;border-bottom:1px solid #99cc99;display:flex;align-items:center;gap:6px">
+        <span style="font-size:18px">🌸</span>
+        <div>
+          <div style="font-weight:bold">SuN_SHiNe_GiRL</div>
+          <div style="font-size:10px;color:#008800">● Online</div>
+        </div>
+      </div>
+      <!-- Online section -->
+      <div style="padding:2px 4px;background:#99cc99;font-weight:bold;font-size:10px;color:#004400">
+        Online (0)
+      </div>
+      <!-- Away section -->
+      <div style="padding:2px 4px;background:#cceecc;font-weight:bold;font-size:10px;color:#006600">
+        Away (${BUDDIES.length})
+      </div>
+      <div id="icq-buddy-list" style="flex:1;overflow-y:auto">
+        ${BUDDIES.map(b => `
+          <div class="icq-buddy-row" style="padding:4px 8px;border-bottom:1px solid #ccddcc;cursor:pointer;display:flex;align-items:center;gap:6px">
+            <span style="color:#cc6600">🌙</span>
+            <div>
+              <div style="font-weight:bold;font-size:11px">${b.name}</div>
+              <div style="font-size:9px;color:#666">${b.statusMsg}</div>
+            </div>
+          </div>`).join('')}
+      </div>
+      <!-- Bottom bar -->
+      <div style="padding:3px 6px;background:#99cc99;border-top:1px solid #66aa66;display:flex;gap:4px">
+        <button style="font-size:9px;padding:1px 6px;font-family:inherit;background:#c0c0c0;border:1px solid #808080;cursor:pointer">Add Contact</button>
+        <button style="font-size:9px;padding:1px 6px;font-family:inherit;background:#c0c0c0;border:1px solid #808080;cursor:pointer">Search</button>
+      </div>
+    </div>
+  `, { width: 200, height: 320 });
+
+  // Click on buddy → message them
+  document.getElementById('icq-buddy-list')?.addEventListener('click', e => {
+    const row = e.target.closest('.icq-buddy-row');
+    if (!row) return;
+    const name = row.querySelector('div > div:first-child')?.textContent || 'buddy';
+    saySpeech(`${name} is Away. They might never reply 💬`, 3500, true);
+  });
+}
+
+export function initICQTray() {
+  // Use the system-tray div from HTML
+  const tray = document.getElementById('system-tray');
+  if (!tray) return;
+
+  // Create ICQ tray icon
+  const icqTrayBtn = document.createElement('button');
+  icqTrayBtn.id = 'tray-icq';
+  icqTrayBtn.title = 'ICQ';
+  icqTrayBtn.style.cssText = `
+    background:none;border:none;cursor:pointer;padding:1px 3px;
+    font-size:14px;line-height:1;display:inline-flex;align-items:center;
+  `;
+  icqTrayBtn.textContent = '🌸';
+  tray.insertBefore(icqTrayBtn, tray.firstChild);
+
+  icqTrayBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    openICQBuddyList();
+  });
+
+  // After 3 seconds, play ICQ "uh-oh" sound and show popup
+  setTimeout(() => {
+    // Play classic ICQ "uh-oh" two-tone sound
+    try {
+      const ctx = getAudioCtx();
+      const t = ctx.currentTime;
+      // Lower tone
+      const osc1 = ctx.createOscillator();
+      const g1 = ctx.createGain();
+      osc1.frequency.value = 440;
+      osc1.type = 'sine';
+      g1.gain.setValueAtTime(0.25, t);
+      g1.gain.linearRampToValueAtTime(0, t + 0.15);
+      osc1.connect(g1); g1.connect(ctx.destination);
+      osc1.start(t); osc1.stop(t + 0.18);
+      // Higher tone
+      const osc2 = ctx.createOscillator();
+      const g2 = ctx.createGain();
+      osc2.frequency.value = 880;
+      osc2.type = 'sine';
+      g2.gain.setValueAtTime(0.25, t + 0.18);
+      g2.gain.linearRampToValueAtTime(0, t + 0.33);
+      osc2.connect(g2); g2.connect(ctx.destination);
+      osc2.start(t + 0.18); osc2.stop(t + 0.36);
+    } catch(e) {}
+
+    // Show popup above tray
+    const desktop = document.getElementById('win98-desktop');
+    const tbEl = document.getElementById('taskbar');
+    if (!desktop || !tbEl) return;
+    const popup = document.createElement('div');
+    popup.id = 'icq-online-popup';
+    popup.style.cssText = `
+      position:absolute;right:60px;
+      bottom:${(tbEl.offsetHeight || 28) + 6}px;
+      background:#ffffcc;border:2px solid #999933;
+      padding:8px 12px;font-family:inherit;font-size:11px;
+      box-shadow:2px 2px 6px rgba(0,0,0,0.35);z-index:9998;
+      white-space:nowrap;border-radius:2px;
+    `;
+    popup.innerHTML = `<b>ICQ:</b> SuN_SHiNe_GiRL (23/F/CA) is now online! 💛`;
+    desktop.appendChild(popup);
+
+    // Fade out after 5 seconds
+    setTimeout(() => {
+      popup.style.transition = 'opacity 0.8s';
+      popup.style.opacity = '0';
+      setTimeout(() => popup.remove(), 900);
+    }, 5000);
+  }, 3000);
+}
+
+/* ─── IE Favorites ─── */
+export function openIEFavorites() {
+  const FAV_TREE = [
+    { type: 'folder', label: 'Links', open: false, children: [
+      { type: 'link', label: 'Best of the Web', url: 'https://web.archive.org/web/19990117032727/http://home.microsoft.com/access/allinone.asp' },
+      { type: 'link', label: 'Channel Guide', url: 'https://web.archive.org/web/1999/http://www.msn.com/' },
+    ]},
+    { type: 'folder', label: 'My Favorites', open: true, children: [
+      { type: 'link', label: 'Geocities - Free Homepage!', url: 'https://web.archive.org/web/1999/http://www.geocities.com/' },
+      { type: 'link', label: 'Napster (napster.com)', url: 'https://web.archive.org/web/2001/http://www.napster.com/' },
+      { type: 'link', label: 'AltaVista Search', url: 'https://web.archive.org/web/1999/http://www.altavista.com/' },
+      { type: 'link', label: 'Ask Jeeves', url: 'https://web.archive.org/web/2000/http://www.ask.com/' },
+      { type: 'link', label: 'Homestar Runner', url: 'https://homestarrunner.com/' },
+      { type: 'link', label: 'Newgrounds', url: 'https://www.newgrounds.com/' },
+      { type: 'link', label: 'eBay - Buy stuff cheap!', url: 'https://www.ebay.com/' },
+      { type: 'link', label: 'Neopets', url: 'https://www.neopets.com/' },
+    ]},
+    { type: 'folder', label: 'Cool Sites', open: false, children: [
+      { type: 'link', label: 'hamsterdance.com', url: 'https://web.archive.org/web/1999/http://hampsterdance.com/' },
+      { type: 'link', label: 'zombo.com', url: 'https://zombo.com/' },
+      { type: 'link', label: 'www.badgerbadgerbadger.com', url: 'https://web.archive.org/web/2003/http://badgerbadgerbadger.com/' },
+      { type: 'link', label: 'Subservient Chicken', url: 'https://web.archive.org/web/2004/http://www.subservientchicken.com/' },
+    ]},
+    { type: 'folder', label: 'News', open: false, children: [
+      { type: 'link', label: 'Yahoo! News', url: 'https://news.yahoo.com/' },
+      { type: 'link', label: 'Slashdot', url: 'https://slashdot.org/' },
+    ]},
+  ];
+
+  function renderTree(items, depth) {
+    return items.map(item => {
+      if (item.type === 'folder') {
+        const childrenHTML = item.open ? renderTree(item.children, depth + 1) : '';
+        const arrow = item.open ? '▼' : '▶';
+        return `<div class="ie-fav-folder" data-label="${item.label}" style="padding:2px 4px 2px ${8 + depth*12}px;cursor:pointer;font-weight:bold;font-size:11px">
+          <span style="font-size:9px;margin-right:3px">${arrow}</span>📁 ${item.label}
+        </div>
+        <div class="ie-fav-children" data-folder="${item.label}" style="display:${item.open?'block':'none'}">
+          ${childrenHTML}
+        </div>`;
+      } else {
+        return `<div class="ie-fav-link" data-url="${item.url}" style="padding:2px 4px 2px ${8 + depth*12}px;cursor:pointer;font-size:11px;color:#0000cc">
+          🌐 ${item.label}
+        </div>`;
+      }
+    }).join('');
+  }
+
+  openWindow('ie-favorites', 'Favorites', ICONS.internet, `
+    <div style="display:flex;flex-direction:column;height:100%;font-family:inherit;font-size:11px;background:#fff">
+      <!-- Toolbar -->
+      <div style="padding:3px 6px;background:#c0c0c0;border-bottom:1px solid #808080;display:flex;gap:4px;align-items:center">
+        <button id="ie-fav-add" style="font-size:10px;padding:2px 8px;font-family:inherit;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;cursor:pointer">Add...</button>
+        <button style="font-size:10px;padding:2px 8px;font-family:inherit;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;cursor:pointer">Organize...</button>
+      </div>
+      <!-- Tree -->
+      <div id="ie-fav-tree" style="flex:1;overflow-y:auto;padding:4px 0">
+        ${renderTree(FAV_TREE, 0)}
+      </div>
+    </div>
+  `, { width: 280, height: 400 });
+
+  // Add button
+  document.getElementById('ie-fav-add')?.addEventListener('click', () => {
+    const dlg = document.createElement('div');
+    dlg.style.cssText = `
+      position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+      background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;
+      box-shadow:3px 3px 6px rgba(0,0,0,0.4);z-index:10001;
+      font-family:inherit;font-size:12px;min-width:280px;
+    `;
+    dlg.innerHTML = `
+      <div style="background:#000080;color:#fff;padding:3px 6px;font-size:11px;font-weight:bold;display:flex;justify-content:space-between">
+        <span>Add Favorite</span>
+        <button onclick="this.closest('div[style]').remove()" style="background:none;border:none;color:#fff;cursor:pointer;font-size:11px;padding:0 2px">✕</button>
+      </div>
+      <div style="padding:12px">
+        <p style="margin-bottom:8px">Your favorite has been added!</p>
+        <div style="display:flex;gap:6px;margin-top:4px">
+          <label style="font-size:11px">Name:</label>
+          <input value="New Page" style="flex:1;font-family:inherit;font-size:11px;border:1px inset #808080;padding:2px">
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:4px;margin-top:10px">
+          <button onclick="this.closest('div[style]').remove()" style="padding:3px 12px;font-size:11px;font-family:inherit;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;cursor:pointer">OK</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(dlg);
+  });
+
+  // Folder expand/collapse
+  document.getElementById('ie-fav-tree')?.addEventListener('click', e => {
+    const folder = e.target.closest('.ie-fav-folder');
+    const link = e.target.closest('.ie-fav-link');
+
+    if (folder) {
+      const label = folder.dataset.label;
+      const children = document.querySelector(`.ie-fav-children[data-folder="${CSS.escape(label)}"]`);
+      if (children) {
+        const isOpen = children.style.display !== 'none';
+        children.style.display = isOpen ? 'none' : 'block';
+        const arrow = folder.querySelector('span');
+        if (arrow) arrow.textContent = isOpen ? '▶' : '▼';
+      }
+    }
+
+    if (link) {
+      const url = link.dataset.url;
+      if (url) {
+        // Use !e browser if available
+        if (typeof openExclamationE === 'function') {
+          openExclamationE(url);
+        } else {
+          window.open(url, '_blank');
+        }
+      }
+    }
+  });
+}
+
+/* ─── Floppy Disk Error ─── */
+export function openFloppyError(filename) {
+  const name = filename || 'file';
+
+  // Show copying progress first
+  const progressId = `floppy-progress-${Date.now()}`;
+  const dlg = document.createElement('div');
+  dlg.id = progressId;
+  dlg.style.cssText = `
+    position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+    background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;
+    box-shadow:3px 3px 8px rgba(0,0,0,0.5);z-index:10005;
+    font-family:inherit;font-size:12px;min-width:340px;
+  `;
+  dlg.innerHTML = `
+    <div style="background:#000080;color:#fff;padding:3px 8px;font-size:11px;font-weight:bold">
+      Copying...
+    </div>
+    <div style="padding:14px 16px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <span style="font-size:24px">💾</span>
+        <div>
+          <div>Copying <b>${name}</b></div>
+          <div style="font-size:10px;color:#444;margin-top:2px">Destination: A:\</div>
+        </div>
+      </div>
+      <div style="background:#fff;border:1px inset #808080;height:16px;position:relative;overflow:hidden;margin-bottom:6px">
+        <div id="floppy-bar" style="height:100%;width:0%;background:#000080;transition:width 0.1s linear"></div>
+      </div>
+      <div id="floppy-pct" style="text-align:right;font-size:10px;font-family:monospace">0%</div>
+    </div>
+  `;
+  document.body.appendChild(dlg);
+
+  // Animate to 73%
+  let pct = 0;
+  const barEl = document.getElementById('floppy-bar');
+  const pctEl = document.getElementById('floppy-pct');
+  const iv = setInterval(() => {
+    pct += 2 + Math.random() * 3;
+    if (pct >= 73) {
+      pct = 73;
+      clearInterval(iv);
+      if (barEl) barEl.style.background = '#c0c0c0';
+      // After 2 seconds show error
+      setTimeout(() => {
+        dlg.remove();
+        // Show Win98 error dialog
+        const errDlg = document.createElement('div');
+        errDlg.style.cssText = `
+          position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+          background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;
+          box-shadow:3px 3px 8px rgba(0,0,0,0.5);z-index:10006;
+          font-family:inherit;font-size:12px;min-width:360px;
+        `;
+        errDlg.innerHTML = `
+          <div style="background:#000080;color:#fff;padding:3px 8px;font-size:11px;font-weight:bold;display:flex;justify-content:space-between;align-items:center">
+            <span>Error Copying File</span>
+            <button onclick="this.closest('div[style]').remove()" style="background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;cursor:pointer;font-size:10px;padding:0 4px;line-height:1.2">✕</button>
+          </div>
+          <div style="padding:14px 16px;display:flex;gap:12px;align-items:flex-start">
+            <div style="font-size:32px;flex-shrink:0">✖</div>
+            <div>
+              <p style="margin-bottom:8px">Cannot copy <b>${name}</b>: There is not enough free disk space.</p>
+              <p>Delete one or more files to free disk space, and then try again.</p>
+            </div>
+          </div>
+          <div style="padding:8px 16px;display:flex;justify-content:flex-end;gap:6px">
+            <button onclick="this.closest('div[style]').remove()" style="padding:4px 20px;font-size:11px;font-family:inherit;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;cursor:pointer">OK</button>
+          </div>
+        `;
+        document.body.appendChild(errDlg);
+      }, 2000);
+    }
+    if (barEl) barEl.style.width = `${pct}%`;
+    if (pctEl) pctEl.textContent = `${Math.floor(pct)}%`;
+  }, 80);
+}
+
+/* ─── Printer Error ─── */
+const PRINTER_MESSAGES = [
+  'There was an error writing to LPT1: for printer (HP DeskJet 722C).\nThe printer is not ready.\nMake sure the printer is turned on.',
+  'Add Printer Wizard cannot find any printers. Make sure your printer is plugged in.',
+  "Your document 'untitled.doc' failed to print.\nPaper jam in Tray 2.",
+  'Low ink warning: Your HP DeskJet 722C is running low on black ink.\n\nEstimated pages remaining: 3',
+];
+
+export function openPrinterError() {
+  const msg = PRINTER_MESSAGES[Math.floor(Math.random() * PRINTER_MESSAGES.length)];
+  const dlg = document.createElement('div');
+  dlg.className = 'win98-printer-error';
+  dlg.style.cssText = `
+    position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+    background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;
+    box-shadow:3px 3px 8px rgba(0,0,0,0.5);z-index:10004;
+    font-family:inherit;font-size:12px;min-width:340px;max-width:400px;
+  `;
+  dlg.innerHTML = `
+    <div style="background:#000080;color:#fff;padding:3px 8px;font-size:11px;font-weight:bold;display:flex;justify-content:space-between;align-items:center">
+      <span>🖨️ Printers</span>
+      <button class="printer-ok-btn" style="background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;cursor:pointer;font-size:10px;padding:0 4px;line-height:1.2;color:#000">✕</button>
+    </div>
+    <div style="padding:14px 16px;display:flex;gap:12px;align-items:flex-start">
+      <div style="font-size:32px;flex-shrink:0">🖨️</div>
+      <div style="white-space:pre-wrap;line-height:1.5">${msg}</div>
+    </div>
+    <div style="padding:8px 16px;display:flex;justify-content:flex-end">
+      <button class="printer-ok-btn" style="padding:4px 20px;font-size:11px;font-family:inherit;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;cursor:pointer">OK</button>
+    </div>
+  `;
+  document.body.appendChild(dlg);
+  dlg.querySelectorAll('.printer-ok-btn').forEach(btn => btn.addEventListener('click', () => dlg.remove()));
+}
+
+let _printerErrorInterval = null;
+export function startPrinterErrors() {
+  if (_printerErrorInterval) return;
+  function scheduleNext() {
+    const delay = 120000 + Math.random() * 60000; // 2-3 minutes
+    _printerErrorInterval = setTimeout(() => {
+      openPrinterError();
+      scheduleNext();
+    }, delay);
+  }
+  scheduleNext();
+}
+
+export function openPrintQueue() {
+  openWindow('print-queue', 'HP DeskJet 722C', ICONS.myComputer, `
+    <div style="display:flex;flex-direction:column;height:100%;font-family:inherit;font-size:11px">
+      <div style="padding:2px 4px;background:#c0c0c0;border-bottom:1px solid #808080;font-size:10px;display:flex;gap:8px">
+        <span style="cursor:pointer">Printer</span>
+        <span style="cursor:pointer">Document</span>
+        <span style="cursor:pointer">View</span>
+        <span style="cursor:pointer">Help</span>
+      </div>
+      <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;background:#000080;color:#fff;padding:2px 4px;font-size:10px;font-weight:bold">
+        <span>Document Name</span><span>Status</span><span>Owner</span><span>Progress</span>
+      </div>
+      <div class="inset-panel" style="flex:1;background:#fff;overflow-y:auto">
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;padding:3px 4px;font-size:11px;border-bottom:1px solid #e0e0e0">
+          <span>Microsoft Word - untitled.doc</span>
+          <span style="color:#000080">Printing</span>
+          <span>yuzhes</span>
+          <span>Page 1 of 47</span>
+        </div>
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;padding:3px 4px;font-size:11px;border-bottom:1px solid #e0e0e0;color:#808080">
+          <span>Internet Explorer - webpage</span>
+          <span>Queued</span>
+          <span>yuzhes</span>
+          <span>Waiting</span>
+        </div>
+      </div>
+      <div style="padding:2px 6px;font-size:10px;background:#c0c0c0;border-top:1px solid #808080">
+        2 document(s) in queue | HP DeskJet 722C on LPT1:
+      </div>
+    </div>
+  `, { width: 480, height: 220 });
+}
+
+/* ─── Real Notepad ─── */
+export function openNotepad() {
+  const STORAGE_KEY = 'win98-notepad-content';
+  const savedContent = localStorage.getItem(STORAGE_KEY) || '';
+  let currentFilename = 'Untitled';
+  let isDirty = false;
+
+  openWindow('notepad', `${currentFilename} - Notepad`, ICONS.notepad, `
+    <div style="display:flex;flex-direction:column;height:100%;box-sizing:border-box;font-family:inherit">
+      <!-- Menu bar -->
+      <div style="background:#c0c0c0;border-bottom:1px solid #808080;padding:1px 2px;font-size:11px;display:flex;gap:0;position:relative" id="np-menubar">
+        <button id="np-file-btn"   class="np-menu-btn" style="padding:2px 8px;background:none;border:none;cursor:pointer;font-family:inherit;font-size:11px">File</button>
+        <button id="np-edit-btn"   class="np-menu-btn" style="padding:2px 8px;background:none;border:none;cursor:pointer;font-family:inherit;font-size:11px">Edit</button>
+        <button id="np-format-btn" class="np-menu-btn" style="padding:2px 8px;background:none;border:none;cursor:pointer;font-family:inherit;font-size:11px">Format</button>
+        <!-- Dropdowns -->
+        <div id="np-file-menu" style="display:none;position:absolute;top:100%;left:0;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;box-shadow:2px 2px 4px rgba(0,0,0,0.3);z-index:200;min-width:140px;font-size:11px">
+          <div class="np-mi" data-action="new"      style="padding:4px 16px;cursor:pointer;white-space:nowrap">New</div>
+          <div class="np-mi" data-action="open"     style="padding:4px 16px;cursor:pointer;white-space:nowrap">Open...</div>
+          <div class="np-mi" data-action="save"     style="padding:4px 16px;cursor:pointer;white-space:nowrap">Save</div>
+          <div style="border-top:1px solid #808080;margin:2px 0"></div>
+          <div class="np-mi" data-action="print"    style="padding:4px 16px;cursor:pointer;white-space:nowrap">Print</div>
+          <div style="border-top:1px solid #808080;margin:2px 0"></div>
+          <div class="np-mi" data-action="exit"     style="padding:4px 16px;cursor:pointer;white-space:nowrap">Exit</div>
+        </div>
+        <div id="np-edit-menu" style="display:none;position:absolute;top:100%;left:46px;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;box-shadow:2px 2px 4px rgba(0,0,0,0.3);z-index:200;min-width:160px;font-size:11px">
+          <div class="np-mi" data-action="selectall" style="padding:4px 16px;cursor:pointer">Select All</div>
+          <div class="np-mi" data-action="cut"       style="padding:4px 16px;cursor:pointer">Cut</div>
+          <div class="np-mi" data-action="copy"      style="padding:4px 16px;cursor:pointer">Copy</div>
+          <div class="np-mi" data-action="paste"     style="padding:4px 16px;cursor:pointer">Paste</div>
+          <div style="border-top:1px solid #808080;margin:2px 0"></div>
+          <div class="np-mi" data-action="datetime"  style="padding:4px 16px;cursor:pointer">Time/Date</div>
+        </div>
+        <div id="np-format-menu" style="display:none;position:absolute;top:100%;left:92px;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;box-shadow:2px 2px 4px rgba(0,0,0,0.3);z-index:200;min-width:140px;font-size:11px">
+          <div class="np-mi" data-action="wordwrap"  style="padding:4px 16px;cursor:pointer">Word Wrap</div>
+          <div class="np-mi" data-action="font"      style="padding:4px 16px;cursor:pointer">Font...</div>
+        </div>
+      </div>
+      <!-- File input (hidden) -->
+      <input id="np-file-input" type="file" accept=".txt,text/plain" style="display:none">
+      <!-- Textarea -->
+      <textarea id="np-textarea" style="
+        flex:1;resize:none;border:none;border:1px inset #808080;
+        font-family:'Courier New',monospace;font-size:13px;
+        padding:4px;box-sizing:border-box;outline:none;line-height:1.4;
+      " wrap="off" spellcheck="false"></textarea>
+      <!-- Status bar -->
+      <div id="np-status" style="padding:1px 6px;background:#c0c0c0;border-top:1px solid #808080;font-size:10px;font-family:monospace">
+        Ln 1, Col 1
+      </div>
+    </div>
+  `, { width: 500, height: 400 });
+
+  const textarea = document.getElementById('np-textarea');
+  const statusBar = document.getElementById('np-status');
+  const winEl = document.getElementById('win-notepad');
+
+  if (!textarea) return;
+  textarea.value = savedContent;
+
+  // Word wrap state
+  let wordWrap = false;
+
+  function setTitle(name, dirty) {
+    currentFilename = name;
+    const t = winEl?.querySelector('.win-title');
+    if (t) t.textContent = `${dirty ? '*' : ''}${name} - Notepad`;
+  }
+
+  function updateStatus() {
+    const text = textarea.value;
+    const pos = textarea.selectionStart;
+    const lines = text.substring(0, pos).split('\n');
+    const ln = lines.length;
+    const col = lines[lines.length - 1].length + 1;
+    if (statusBar) statusBar.textContent = `Ln ${ln}, Col ${col}`;
+    // Auto-save
+    localStorage.setItem(STORAGE_KEY, text);
+    if (!isDirty && text !== savedContent) {
+      isDirty = true;
+      setTitle(currentFilename, true);
+    }
+  }
+
+  textarea.addEventListener('keyup', updateStatus);
+  textarea.addEventListener('click', updateStatus);
+  textarea.addEventListener('input', updateStatus);
+
+  // Menu toggle logic
+  let openMenu = null;
+  function closeMenus() {
+    ['np-file-menu', 'np-edit-menu', 'np-format-menu'].forEach(id => {
+      const m = document.getElementById(id);
+      if (m) m.style.display = 'none';
+    });
+    openMenu = null;
+  }
+
+  function toggleMenu(menuId) {
+    if (openMenu === menuId) { closeMenus(); return; }
+    closeMenus();
+    const m = document.getElementById(menuId);
+    if (m) m.style.display = 'block';
+    openMenu = menuId;
+  }
+
+  document.getElementById('np-file-btn')?.addEventListener('click',   e => { e.stopPropagation(); toggleMenu('np-file-menu'); });
+  document.getElementById('np-edit-btn')?.addEventListener('click',   e => { e.stopPropagation(); toggleMenu('np-edit-menu'); });
+  document.getElementById('np-format-btn')?.addEventListener('click', e => { e.stopPropagation(); toggleMenu('np-format-menu'); });
+  document.addEventListener('click', closeMenus);
+
+  // Menu item actions
+  document.getElementById('win-notepad')?.addEventListener('click', e => {
+    const mi = e.target.closest('.np-mi');
+    if (!mi) return;
+    closeMenus();
+    const action = mi.dataset.action;
+
+    if (action === 'new') {
+      const doNew = () => {
+        textarea.value = '';
+        isDirty = false;
+        currentFilename = 'Untitled';
+        setTitle('Untitled', false);
+        localStorage.removeItem(STORAGE_KEY);
+      };
+      if (isDirty) {
+        if (confirm('Do you want to save changes to ' + currentFilename + '?')) {
+          doSave();
+        }
+        doNew();
+      } else {
+        doNew();
+      }
+    }
+
+    if (action === 'save') doSave();
+    if (action === 'open') document.getElementById('np-file-input')?.click();
+    if (action === 'print') {
+      openPrinterError();
+    }
+    if (action === 'exit') closeWindow('notepad');
+
+    if (action === 'selectall') { textarea.select(); textarea.focus(); }
+    if (action === 'cut') { textarea.focus(); document.execCommand('cut'); }
+    if (action === 'copy') { textarea.focus(); document.execCommand('copy'); }
+    if (action === 'paste') { textarea.focus(); document.execCommand('paste'); }
+    if (action === 'datetime') {
+      const now = new Date();
+      const str = now.toLocaleString('en-US');
+      const pos = textarea.selectionStart;
+      const val = textarea.value;
+      textarea.value = val.substring(0, pos) + str + val.substring(textarea.selectionEnd);
+      textarea.selectionStart = textarea.selectionEnd = pos + str.length;
+      textarea.focus();
+      updateStatus();
+    }
+
+    if (action === 'wordwrap') {
+      wordWrap = !wordWrap;
+      textarea.wrap = wordWrap ? 'soft' : 'off';
+      textarea.style.whiteSpace = wordWrap ? 'pre-wrap' : 'pre';
+      mi.textContent = (wordWrap ? '✓ ' : '') + 'Word Wrap';
+    }
+
+    if (action === 'font') {
+      const fontDlg = document.createElement('div');
+      fontDlg.style.cssText = `
+        position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+        background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;
+        box-shadow:3px 3px 8px rgba(0,0,0,0.5);z-index:10010;
+        font-family:inherit;font-size:12px;min-width:280px;
+      `;
+      fontDlg.innerHTML = `
+        <div style="background:#000080;color:#fff;padding:3px 8px;font-size:11px;font-weight:bold">Font</div>
+        <div style="padding:12px">
+          <label style="display:block;margin-bottom:4px;font-size:11px">Font:</label>
+          <select id="np-font-sel" style="width:100%;font-family:inherit;font-size:11px;margin-bottom:8px">
+            <option value="'Courier New',monospace">Courier New</option>
+            <option value="'Arial',sans-serif">Arial</option>
+            <option value="'Times New Roman',serif">Times New Roman</option>
+            <option value="'Comic Sans MS',cursive">Comic Sans MS</option>
+            <option value="monospace">Monospace</option>
+          </select>
+          <label style="display:block;margin-bottom:4px;font-size:11px">Size:</label>
+          <select id="np-size-sel" style="width:100%;font-family:inherit;font-size:11px;margin-bottom:8px">
+            <option>10</option><option>11</option><option selected>13</option>
+            <option>14</option><option>16</option><option>18</option><option>24</option>
+          </select>
+          <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:8px">
+            <button id="np-font-ok" style="padding:3px 14px;font-size:11px;font-family:inherit;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;cursor:pointer">OK</button>
+            <button onclick="this.closest('div[style]').remove()" style="padding:3px 14px;font-size:11px;font-family:inherit;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;cursor:pointer">Cancel</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(fontDlg);
+      document.getElementById('np-font-ok')?.addEventListener('click', () => {
+        const font = document.getElementById('np-font-sel')?.value || "'Courier New',monospace";
+        const size = document.getElementById('np-size-sel')?.value || '13';
+        if (textarea) { textarea.style.fontFamily = font; textarea.style.fontSize = size + 'px'; }
+        fontDlg.remove();
+      });
+    }
+  });
+
+  function doSave() {
+    const text = textarea.value;
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = (currentFilename === 'Untitled' ? 'untitled' : currentFilename) + '.txt';
+    a.click();
+    URL.revokeObjectURL(url);
+    isDirty = false;
+    setTitle(currentFilename, false);
+    saySpeech('File saved! 💾', 2500, true);
+  }
+
+  // File open
+  document.getElementById('np-file-input')?.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      if (textarea) {
+        textarea.value = ev.target.result;
+        currentFilename = file.name.replace(/\.txt$/i, '');
+        isDirty = false;
+        setTitle(currentFilename, false);
+        localStorage.setItem(STORAGE_KEY, ev.target.result);
+        updateStatus();
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  });
+}
+
+/* ─── Neko desktop pet ─── */
+let _nekoEl = null;
+export function spawnNeko() {
+  if (_nekoEl && document.body.contains(_nekoEl)) {
+    saySpeech('Neko is already here! 🐱', 2500, true);
+    return;
+  }
+
+  const neko = document.createElement('div');
+  neko.id = 'neko-pet';
+  _nekoEl = neko;
+  neko.style.cssText = `
+    position:fixed;z-index:8000;width:40px;height:40px;
+    left:200px;top:200px;cursor:pointer;user-select:none;
+    transition:left 0.3s ease, top 0.3s ease;
+    pointer-events:auto;
+  `;
+
+  neko.innerHTML = `
+    <style>
+      @keyframes neko-ear-twitch {
+        0%,90%,100% { transform: scaleY(1); }
+        95% { transform: scaleY(0.6); }
+      }
+      @keyframes neko-sleep-zzz {
+        0%,100% { opacity:0;transform:translate(0,0) scale(0.5); }
+        50% { opacity:1;transform:translate(8px,-8px) scale(1); }
+      }
+      @keyframes neko-scratch {
+        0%,100% { transform: rotate(0deg); }
+        25% { transform: rotate(-15deg); }
+        75% { transform: rotate(15deg); }
+      }
+      @keyframes neko-surprised {
+        0%,100% { transform:translateY(0); }
+        30% { transform:translateY(-20px); }
+        60% { transform:translateY(-8px); }
+      }
+      #neko-pet.neko-sleeping #neko-body { animation: none; }
+      #neko-pet.neko-scratching { animation: neko-scratch 0.3s ease infinite; }
+      #neko-pet.neko-surprised { animation: neko-surprised 0.6s ease; }
+      #neko-ear-left { animation: neko-ear-twitch 4s ease infinite; transform-origin: bottom center; }
+    </style>
+    <svg id="neko-body" viewBox="0 0 40 40" width="40" height="40" xmlns="http://www.w3.org/2000/svg">
+      <!-- Tail -->
+      <path id="neko-tail" d="M28 32 Q38 28 36 20 Q34 14 30 18" fill="none" stroke="#e8c9a0" stroke-width="3" stroke-linecap="round"/>
+      <!-- Body -->
+      <ellipse cx="20" cy="28" rx="13" ry="10" fill="#f5e0c0" stroke="#c4a882" stroke-width="1"/>
+      <!-- Head -->
+      <circle cx="20" cy="16" r="11" fill="#f5e0c0" stroke="#c4a882" stroke-width="1"/>
+      <!-- Ears -->
+      <polygon id="neko-ear-left" points="10,8 6,2 14,6" fill="#f5e0c0" stroke="#c4a882" stroke-width="1"/>
+      <polygon points="30,8 34,2 26,6" fill="#f5e0c0" stroke="#c4a882" stroke-width="1"/>
+      <!-- Inner ears -->
+      <polygon points="10,7 7,3 13,6" fill="#ffb6c1"/>
+      <polygon points="30,7 33,3 27,6" fill="#ffb6c1"/>
+      <!-- Eyes -->
+      <ellipse id="neko-eye-l" cx="16" cy="15" rx="2.5" ry="2.5" fill="#222"/>
+      <ellipse id="neko-eye-r" cx="24" cy="15" rx="2.5" ry="2.5" fill="#222"/>
+      <!-- Eye shine -->
+      <circle cx="17" cy="14" r="0.8" fill="#fff"/>
+      <circle cx="25" cy="14" r="0.8" fill="#fff"/>
+      <!-- Nose -->
+      <ellipse cx="20" cy="19" rx="1.5" ry="1" fill="#ff9999"/>
+      <!-- Mouth -->
+      <path d="M18 20.5 Q20 22 22 20.5" fill="none" stroke="#c4a882" stroke-width="0.8"/>
+      <!-- Whiskers -->
+      <line x1="8" y1="18" x2="16" y2="19" stroke="#c4a882" stroke-width="0.6"/>
+      <line x1="8" y1="20" x2="16" y2="20" stroke="#c4a882" stroke-width="0.6"/>
+      <line x1="24" y1="19" x2="32" y2="18" stroke="#c4a882" stroke-width="0.6"/>
+      <line x1="24" y1="20" x2="32" y2="20" stroke="#c4a882" stroke-width="0.6"/>
+      <!-- Name tag -->
+      <rect x="13" y="34" width="14" height="6" rx="2" fill="#ff9966" stroke="#cc6633" stroke-width="0.5"/>
+      <text x="20" y="39" text-anchor="middle" font-size="4" font-family="Arial" fill="#fff" font-weight="bold">Neko</text>
+    </svg>
+    <div id="neko-zzz" style="
+      position:absolute;top:-12px;right:-4px;font-size:10px;color:#88aaff;
+      display:none;animation:neko-sleep-zzz 1.5s ease infinite;
+    ">zzz</div>
+  `;
+
+  document.body.appendChild(neko);
+
+  // State machine
+  let state = 'idle'; // idle, running, sleeping, scratching, surprised
+  let targetX = 200, targetY = 200;
+  let sleepTimer = null;
+  let nekoName = 'Neko';
+
+  const STATES = {
+    idle:       () => { neko.style.transition = 'left 0.5s ease, top 0.5s ease'; document.getElementById('neko-zzz').style.display='none'; },
+    running:    () => { neko.style.transition = 'left 0.15s linear, top 0.15s linear'; document.getElementById('neko-zzz').style.display='none'; },
+    sleeping:   () => { neko.style.transition = ''; document.getElementById('neko-zzz').style.display='block'; },
+    scratching: () => { neko.classList.add('neko-scratching'); document.getElementById('neko-zzz').style.display='none'; },
+    surprised:  () => { neko.classList.add('neko-surprised'); setTimeout(()=>{neko.classList.remove('neko-surprised');setState('idle');},600); },
+  };
+
+  function setState(newState) {
+    neko.classList.remove('neko-scratching', 'neko-surprised');
+    state = newState;
+    STATES[newState]?.();
+  }
+
+  function resetSleepTimer() {
+    clearTimeout(sleepTimer);
+    if (state === 'sleeping') setState('idle');
+    sleepTimer = setTimeout(() => setState('sleeping'), 10000);
+  }
+
+  // Follow cursor
+  document.addEventListener('mousemove', e => {
+    if (!document.body.contains(neko)) return;
+    resetSleepTimer();
+    const nx = parseInt(neko.style.left) || 200;
+    const ny = parseInt(neko.style.top) || 200;
+    const dx = e.clientX - nx - 20;
+    const dy = e.clientY - ny - 20;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+
+    if (dist > 80) {
+      setState('running');
+      targetX = e.clientX - 20;
+      targetY = e.clientY - 20;
+      neko.style.left = `${Math.max(0, Math.min(window.innerWidth - 44, targetX))}px`;
+      neko.style.top  = `${Math.max(0, Math.min(window.innerHeight - 44, targetY))}px`;
+
+      // Flip horizontally if moving left
+      const body = document.getElementById('neko-body');
+      if (body) body.style.transform = dx < 0 ? 'scaleX(-1)' : '';
+    } else if (state === 'running') {
+      setState('idle');
+    }
+  });
+
+  // Right-click context menu
+  neko.addEventListener('contextmenu', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    const { showContextMenu } = window._win98CoreExports || {};
+    const items = [
+      { label: 'Pet 🐱', action: () => {
+        try {
+          const ctx = getAudioCtx();
+          const t = ctx.currentTime;
+          // Purr — low frequency oscillation
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.frequency.value = 80;
+          osc.type = 'sawtooth';
+          gain.gain.setValueAtTime(0.08, t);
+          gain.gain.linearRampToValueAtTime(0, t + 0.8);
+          osc.connect(gain); gain.connect(ctx.destination);
+          osc.start(t); osc.stop(t + 0.9);
+        } catch(e) {}
+        saySpeech('Purrr... 🐱', 2500, true);
+        setState('surprised');
+      }},
+      { label: 'Rename', action: () => {
+        const name = prompt('Enter a name for your cat:', nekoName);
+        if (name && name.trim()) {
+          nekoName = name.trim();
+          const tag = neko.querySelector('text');
+          if (tag) tag.textContent = nekoName.slice(0, 5);
+          saySpeech(`Your cat is now named ${nekoName}! 🐱`, 3000, true);
+        }
+      }},
+      { label: 'Shoo!', action: () => {
+        neko.style.transition = 'opacity 0.4s, transform 0.4s';
+        neko.style.opacity = '0';
+        neko.style.transform = 'scale(0)';
+        setTimeout(() => { neko.remove(); _nekoEl = null; }, 450);
+        saySpeech('Neko ran away! 🐱💨', 2500, true);
+      }},
+    ];
+    // Build simple context menu inline since showContextMenu may not be importable here
+    const menu = document.createElement('div');
+    menu.style.cssText = `
+      position:fixed;left:${e.clientX}px;top:${e.clientY}px;
+      background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;
+      box-shadow:2px 2px 4px rgba(0,0,0,0.4);z-index:9999;
+      font-family:inherit;font-size:11px;min-width:120px;
+    `;
+    items.forEach(item => {
+      const div = document.createElement('div');
+      div.textContent = item.label;
+      div.style.cssText = 'padding:4px 16px;cursor:pointer;';
+      div.addEventListener('mouseenter', () => { div.style.background='#000080'; div.style.color='#fff'; });
+      div.addEventListener('mouseleave', () => { div.style.background=''; div.style.color=''; });
+      div.addEventListener('click', () => { item.action?.(); menu.remove(); });
+      menu.appendChild(div);
+    });
+    document.body.appendChild(menu);
+    const removeMenu = () => { menu.remove(); document.removeEventListener('click', removeMenu); };
+    setTimeout(() => document.addEventListener('click', removeMenu), 0);
+  });
+
+  // Start sleep timer
+  resetSleepTimer();
+
+  // Surprised when a new window opens — observe DOM
+  const nekoObs = new MutationObserver(mutations => {
+    if (!document.body.contains(neko)) { nekoObs.disconnect(); return; }
+    for (const m of mutations) {
+      for (const node of m.addedNodes) {
+        if (node.classList?.contains('win98-window')) {
+          setState('surprised');
+          break;
+        }
+      }
+    }
+  });
+  nekoObs.observe(document.getElementById('win98-desktop') || document.body, { childList: true, subtree: true });
+
+  saySpeech('🐱 Neko has arrived!', 2500, true);
+}
+
+/* ─── Internet Radio ─── */
+export function openRadio() {
+  const STATIONS = [
+    { name: '📻 Y2K Hits', freq: '98.5', genre: 'Y2K Pop', url: 'https://streams.ilovemusic.de/iloveradio2.mp3', nowPlaying: 'Crazy in Love - Beyoncé' },
+    { name: '📻 Windows 98 FM', freq: '103.1', genre: 'Synthwave', url: 'https://stream.srg-ssr.ch/m/rsj/mp3_128', nowPlaying: 'Back to the 90s Mix' },
+    { name: '📻 AOL Radio', freq: '106.7', genre: 'Pop Hits', url: 'https://streams.ilovemusic.de/iloveradio2.mp3', nowPlaying: 'Oops!... I Did It Again' },
+    { name: '📻 Napster Radio', freq: '91.9', genre: 'Alternative', url: 'https://stream.srg-ssr.ch/m/rsj/mp3_128', nowPlaying: 'Mr. Brightside - The Killers' },
+  ];
+
+  let currentStation = null;
+  let radioAudio = null;
+  let isPlaying = false;
+
+  openWindow('radio', 'Internet Radio', ICONS.winamp, `
+    <div style="
+      display:flex;flex-direction:column;height:100%;
+      background:linear-gradient(180deg,#2a2a2a,#1a1a1a);
+      color:#eee;font-family:'Courier New',monospace;font-size:11px;
+      box-sizing:border-box;
+    ">
+      <!-- Display -->
+      <div style="
+        background:#111;border:2px inset #444;margin:8px 8px 4px;
+        padding:8px 10px;border-radius:2px;
+      ">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <span style="color:#00ff88;font-size:9px">● INTERNET RADIO</span>
+          <span id="radio-freq" style="color:#ff8800;font-weight:bold;font-size:13px">-- FM</span>
+        </div>
+        <div style="
+          background:#000;border:1px solid #333;overflow:hidden;
+          white-space:nowrap;height:16px;position:relative;
+        ">
+          <div id="radio-marquee" style="
+            display:inline-block;white-space:nowrap;
+            animation:radio-scroll 12s linear infinite;color:#00ff88;font-size:10px;padding-top:2px;
+          ">Select a station to start streaming...</div>
+        </div>
+        <style>
+          @keyframes radio-scroll { 0% { transform:translateX(100%); } 100% { transform:translateX(-100%); } }
+        </style>
+        <div style="margin-top:4px;display:flex;justify-content:space-between;font-size:9px;color:#888">
+          <span id="radio-genre">Genre: --</span>
+          <span id="radio-status" style="color:#ff4444">■ STOPPED</span>
+        </div>
+      </div>
+
+      <!-- Frequency dial visual -->
+      <div style="
+        margin:0 8px 4px;background:#222;border:1px solid #444;
+        padding:4px 8px;position:relative;height:20px;border-radius:10px;overflow:hidden;
+      ">
+        <div style="
+          position:absolute;top:0;left:0;right:0;bottom:0;
+          background:repeating-linear-gradient(90deg,#333 0px,#333 1px,transparent 1px,transparent 8px);
+        "></div>
+        <div id="radio-tuner" style="
+          position:absolute;top:0;bottom:0;width:3px;background:#ff8800;
+          box-shadow:0 0 6px #ff8800;transition:left 0.4s ease;left:10%;
+        "></div>
+        <div style="
+          position:absolute;top:2px;left:4px;right:4px;
+          display:flex;justify-content:space-between;font-size:8px;color:#666;
+        ">
+          <span>88</span><span>92</span><span>96</span><span>100</span><span>104</span><span>108</span>
+        </div>
+      </div>
+
+      <!-- Station presets -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;margin:0 8px 4px">
+        ${STATIONS.map((s, i) => `
+          <button class="radio-preset" data-idx="${i}" style="
+            background:#333;color:#ccc;border:1px solid #555;
+            padding:4px 6px;cursor:pointer;font-family:'Courier New',monospace;font-size:9px;
+            text-align:left;border-radius:2px;transition:background 0.15s;
+          ">${s.name}<br><span style="color:#888;font-size:8px">${s.freq} FM</span></button>
+        `).join('')}
+      </div>
+
+      <!-- Volume + controls -->
+      <div style="display:flex;align-items:center;gap:6px;margin:0 8px;padding:4px 0;border-top:1px solid #333">
+        <span style="font-size:10px;color:#888">VOL</span>
+        <input id="radio-vol" type="range" min="0" max="1" step="0.05" value="0.7"
+          style="flex:1;accent-color:#ff8800;height:12px;cursor:pointer">
+        <button id="radio-play" style="
+          background:#444;color:#00ff88;border:1px solid #666;
+          padding:4px 14px;cursor:pointer;font-family:monospace;font-size:13px;border-radius:2px;
+        ">▶</button>
+        <button id="radio-stop" style="
+          background:#444;color:#ff4444;border:1px solid #666;
+          padding:4px 12px;cursor:pointer;font-family:monospace;font-size:13px;border-radius:2px;
+        ">■</button>
+      </div>
+    </div>
+  `, { width: 300, height: 260 });
+
+  function playStatic() {
+    try {
+      const ctx = getAudioCtx();
+      const bufSize = ctx.sampleRate * 0.15;
+      const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1) * 0.15;
+      const src = ctx.createBufferSource();
+      const gain = ctx.createGain();
+      src.buffer = buf;
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.15);
+      src.connect(gain); gain.connect(ctx.destination);
+      src.start();
+    } catch(e) {}
+  }
+
+  function selectStation(idx) {
+    const station = STATIONS[idx];
+    if (!station) return;
+    currentStation = idx;
+    playStatic();
+
+    // Update tuner position
+    const freqVal = parseFloat(station.freq);
+    const pct = ((freqVal - 88) / (108 - 88)) * 90 + 5;
+    const tuner = document.getElementById('radio-tuner');
+    if (tuner) tuner.style.left = `${pct}%`;
+
+    // Update display
+    const freq = document.getElementById('radio-freq');
+    const marquee = document.getElementById('radio-marquee');
+    const genre = document.getElementById('radio-genre');
+    if (freq) freq.textContent = `${station.freq} FM`;
+    if (marquee) marquee.textContent = `♪ ${station.nowPlaying} ♪   |   ${station.name}   |   `;
+    if (genre) genre.textContent = `Genre: ${station.genre}`;
+
+    // Highlight selected preset
+    document.querySelectorAll('.radio-preset').forEach((btn, i) => {
+      btn.style.background = i === idx ? '#553300' : '#333';
+      btn.style.borderColor = i === idx ? '#ff8800' : '#555';
+      btn.style.color = i === idx ? '#ff8800' : '#ccc';
+    });
+
+    if (isPlaying) startAudio(station);
+  }
+
+  function startAudio(station) {
+    if (radioAudio) { radioAudio.pause(); radioAudio = null; }
+    radioAudio = new Audio();
+    radioAudio.crossOrigin = 'anonymous';
+    radioAudio.src = station.url;
+    radioAudio.volume = parseFloat(document.getElementById('radio-vol')?.value || '0.7');
+    radioAudio.play().catch(() => {
+      const status = document.getElementById('radio-status');
+      if (status) { status.textContent = '⚠ STREAM ERROR'; status.style.color = '#ff8800'; }
+      saySpeech('Stream error — check your 56K connection 📞', 3500, true);
+    });
+    const status = document.getElementById('radio-status');
+    const playBtn = document.getElementById('radio-play');
+    if (status) { status.textContent = '▶ STREAMING'; status.style.color = '#00ff88'; }
+    if (playBtn) playBtn.textContent = '⏸';
+    isPlaying = true;
+  }
+
+  function stopAudio() {
+    if (radioAudio) { radioAudio.pause(); radioAudio = null; }
+    const status = document.getElementById('radio-status');
+    const playBtn = document.getElementById('radio-play');
+    if (status) { status.textContent = '■ STOPPED'; status.style.color = '#ff4444'; }
+    if (playBtn) playBtn.textContent = '▶';
+    isPlaying = false;
+  }
+
+  // Preset buttons
+  document.querySelectorAll('.radio-preset').forEach(btn => {
+    btn.addEventListener('click', () => selectStation(parseInt(btn.dataset.idx)));
+  });
+
+  // Play/Pause
+  document.getElementById('radio-play')?.addEventListener('click', () => {
+    if (currentStation === null) { selectStation(0); }
+    if (isPlaying) {
+      stopAudio();
+    } else {
+      startAudio(STATIONS[currentStation]);
+    }
+  });
+
+  // Stop
+  document.getElementById('radio-stop')?.addEventListener('click', stopAudio);
+
+  // Volume
+  document.getElementById('radio-vol')?.addEventListener('input', e => {
+    if (radioAudio) radioAudio.volume = parseFloat(e.target.value);
+  });
+
+  // Cleanup when window closes
+  const radioObs = new MutationObserver(() => {
+    if (!document.getElementById('win-radio')) {
+      stopAudio();
+      radioObs.disconnect();
+    }
+  });
+  radioObs.observe(document.getElementById('win98-desktop') || document.body, { childList: true, subtree: true });
+}

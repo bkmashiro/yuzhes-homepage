@@ -25,6 +25,11 @@ import {
   openTerminal, startMatrixRain, startStarfield, openMAGI,
   loadRSS,
   openTetris, openPinball, openBonziBuddy, openTaskManager, openDialup, openRansomware,
+  // New features
+  openOutlookExpress, openICQBuddyList, initICQTray,
+  openIEFavorites, openFloppyError,
+  openPrinterError, startPrinterErrors, openPrintQueue,
+  openNotepad, spawnNeko, openRadio,
 } from './win98-apps.js';
 
 /* ─── Desktop icon definitions ─── */
@@ -302,6 +307,77 @@ const DESKTOP_ICONS = [
       { label: 'Properties' },
     ],
   },
+  {
+    id: 'outlook-express',
+    label: 'Outlook Express',
+    icon: ICONS.internet,
+    onOpen: openOutlookExpress,
+    contextItems: def => [
+      { label: 'Open', action: def.onOpen },
+      { label: 'Check Mail', action: def.onOpen },
+      '---',
+      { label: 'Properties' },
+    ],
+  },
+  {
+    id: 'ie-favorites',
+    label: 'Favorites',
+    icon: ICONS.internet,
+    onOpen: openIEFavorites,
+    contextItems: def => [
+      { label: 'Open', action: def.onOpen },
+      '---',
+      { label: 'Add Favorite...', action: () => saySpeech('Added to Favorites! ⭐', 2500, true) },
+      { label: 'Properties' },
+    ],
+  },
+  {
+    id: 'print-queue',
+    label: 'Printers',
+    icon: ICONS.myComputer,
+    onOpen: openPrintQueue,
+    contextItems: def => [
+      { label: 'Open', action: def.onOpen },
+      { label: 'Set as Default Printer', action: () => saySpeech('HP DeskJet 722C set as default 🖨️', 3000, true) },
+      '---',
+      { label: 'Properties' },
+    ],
+  },
+  {
+    id: 'neko',
+    label: 'Neko.exe',
+    icon: ICONS.winamp,
+    onOpen: spawnNeko,
+    contextItems: def => [
+      { label: 'Run', action: def.onOpen },
+      '---',
+      { label: 'Properties' },
+    ],
+  },
+  {
+    id: 'radio',
+    label: 'Internet Radio',
+    icon: ICONS.winamp,
+    onOpen: openRadio,
+    contextItems: def => [
+      { label: 'Open', action: def.onOpen },
+      { label: 'Play', action: def.onOpen },
+      '---',
+      { label: 'Properties' },
+    ],
+  },
+  {
+    id: 'notepad-new',
+    label: 'Notepad',
+    icon: ICONS.notepad,
+    onOpen: openNotepad,
+    contextItems: def => [
+      { label: 'Open', action: def.onOpen },
+      { label: 'Print', action: openPrinterError },
+      '---',
+      { label: 'Properties' },
+    ],
+  },
 ];
 
 /* ─── Start menu ─── */
@@ -355,6 +431,13 @@ function initStartMenu() {
       <div class="start-menu-item" id="sm-dialup">📞 Dial-up Internet</div>
       <div class="start-menu-item" id="sm-ransomware">💀 RANSOMWARE.exe</div>
       <div class="start-menu-separator"></div>
+      <div class="start-menu-item" id="sm-outlook">📧 Outlook Express</div>
+      <div class="start-menu-item" id="sm-ie-favorites">⭐ Favorites</div>
+      <div class="start-menu-item" id="sm-notepad-new">📝 Notepad</div>
+      <div class="start-menu-item" id="sm-radio">📻 Internet Radio</div>
+      <div class="start-menu-item" id="sm-neko">🐱 Neko.exe</div>
+      <div class="start-menu-item" id="sm-printqueue">🖨️ Printers</div>
+      <div class="start-menu-separator"></div>
       <div class="start-menu-item" onclick="window.openShutdownDialog()">
         <img src="${ICONS.winlogo}" alt=""> Shut Down...
       </div>
@@ -382,6 +465,12 @@ function initStartMenu() {
   menu.querySelector('#sm-taskmanager')?.addEventListener('click', () => { menu.classList.remove('open'); openTaskManager(); });
   menu.querySelector('#sm-dialup')?.addEventListener('click', () => { menu.classList.remove('open'); openDialup(); });
   menu.querySelector('#sm-ransomware')?.addEventListener('click', () => { menu.classList.remove('open'); openRansomware(); });
+  menu.querySelector('#sm-outlook')?.addEventListener('click', () => { menu.classList.remove('open'); openOutlookExpress(); });
+  menu.querySelector('#sm-ie-favorites')?.addEventListener('click', () => { menu.classList.remove('open'); openIEFavorites(); });
+  menu.querySelector('#sm-notepad-new')?.addEventListener('click', () => { menu.classList.remove('open'); openNotepad(); });
+  menu.querySelector('#sm-radio')?.addEventListener('click', () => { menu.classList.remove('open'); openRadio(); });
+  menu.querySelector('#sm-neko')?.addEventListener('click', () => { menu.classList.remove('open'); spawnNeko(); });
+  menu.querySelector('#sm-printqueue')?.addEventListener('click', () => { menu.classList.remove('open'); openPrintQueue(); });
 }
 
 /* ─── Clock ─── */
@@ -577,14 +666,38 @@ function initContextMenus() {
             { label: 'Properties' },
           ];
       // Auto-fill missing Properties actions
-      const mappedItems = baseItems.map(item =>
-        (item !== '---' && item.label === 'Properties' && !item.action)
-          ? { ...item, action: () => openGenericProperties(def) }
-          : item
-      );
+      const iconLabel = clickedIcon.querySelector('span')?.textContent ?? 'file';
+      const mappedItems = baseItems.map(item => {
+        if (item === '---') return item;
+        if (item.label === 'Properties' && !item.action) {
+          return { ...item, action: () => openGenericProperties(def) };
+        }
+        // Enhance existing "Send To" submenus to include floppy action
+        if (item.label === 'Send To' && item.sub) {
+          return {
+            ...item, sub: item.sub.map(sub => {
+              if (sub.label && (sub.label.includes('Floppy') || sub.label.includes('3½'))) {
+                return { ...sub, label: 'My Floppy Disk (A:)', action: () => openFloppyError(iconLabel) };
+              }
+              return sub;
+            })
+          };
+        }
+        return item;
+      });
+      // If no "Send To" was in the menu, inject one
+      const hasSendTo = mappedItems.some(i => i !== '---' && i.label === 'Send To');
+      const sendToItem = {
+        label: 'Send To',
+        sub: [
+          { label: 'My Floppy Disk (A:)', action: () => openFloppyError(iconLabel) },
+          { label: 'Desktop (create shortcut)' },
+        ],
+      };
       // Inject working Rename + Delete into every desktop icon menu
       const items = [
         ...mappedItems,
+        ...(hasSendTo ? [] : ['---', sendToItem]),
         '---',
         { label: 'Rename', action: () => startRename(clickedIcon.querySelector('span')) },
         { label: 'Delete', action: () => deleteIcon(clickedIcon) },
@@ -1101,6 +1214,8 @@ export function initWin98() {
   initSystemTray();
   initScreensaver();
   initBSOD();
+  initICQTray();
+  startPrinterErrors();
 
   // Expose functions needed by inline onclick handlers in generated HTML
   window.openProjects = openProjects;
@@ -1155,4 +1270,13 @@ export function initWin98() {
   window.openTaskManager = openTaskManager;
   window.openDialup = openDialup;
   window.openRansomware = openRansomware;
+  window.openOutlookExpress = openOutlookExpress;
+  window.openICQBuddyList = openICQBuddyList;
+  window.openIEFavorites = openIEFavorites;
+  window.openFloppyError = openFloppyError;
+  window.openPrinterError = openPrinterError;
+  window.openPrintQueue = openPrintQueue;
+  window.openNotepad = openNotepad;
+  window.spawnNeko = spawnNeko;
+  window.openRadio = openRadio;
 }
