@@ -191,123 +191,6 @@ const DESKTOP_ICONS = [
     ],
   },
   {
-    id: 'blog',
-    label: 'Blog Reader',
-    icon: ICONS.rss,
-    onOpen: openBlogReader,
-    contextItems: def => [
-      { label: 'Open',    action: def.onOpen },
-      { label: 'Refresh', action: () => { def.onOpen(); loadRSS(); } },
-      '---',
-      { label: 'Visit Blog', action: () => window.open('https://blog.yuzhes.com', '_blank') },
-      { label: 'Properties' },
-    ],
-  },
-  {
-    id: 'lab',
-    label: 'Creative Lab',
-    icon: ICONS.lab,
-    onOpen: openCreativeLab,
-    contextItems: def => [
-      { label: 'Open', action: def.onOpen },
-      '---',
-      { label: 'Properties' },
-    ],
-  },
-  {
-    id: 'research',
-    label: 'Research',
-    icon: ICONS.research,
-    onOpen: openResearch,
-    contextItems: def => [
-      { label: 'Open', action: def.onOpen },
-      '---',
-      { label: 'Properties' },
-    ],
-  },
-  {
-    id: 'calendar',
-    label: 'Calendar',
-    icon: ICONS.cal,
-    onOpen: openCalendar,
-    contextItems: def => [
-      { label: 'Open',         action: def.onOpen },
-      { label: 'Today',        action: def.onOpen },
-      '---',
-      { label: 'Properties' },
-    ],
-  },
-  {
-    id: 'excl-e',
-    label: '!e Browser',
-    icon: ICONS.browser,
-    onOpen: openExclamationE,
-    contextItems: def => [
-      { label: 'Open',             action: def.onOpen },
-      { label: 'New Window',       action: def.onOpen },
-      '---',
-      { label: 'Set Home Page…',   action: () => saySpeech('Home page updated! 🏠', 3000) },
-      { label: 'Properties' },
-    ],
-  },
-  {
-    id: 'tetris',
-    label: 'Tetris',
-    icon: ICONS.mine,
-    onOpen: openTetris,
-    contextItems: def => [
-      { label: 'Open',       action: def.onOpen },
-      { label: 'High Scores', action: () => saySpeech('High score: 0. You can do better!', 3000) },
-      '---',
-      { label: 'Properties' },
-    ],
-  },
-  {
-    id: 'pinball',
-    label: 'Pinball',
-    icon: ICONS.mine,
-    onOpen: openPinball,
-    contextItems: def => [
-      { label: 'Open', action: def.onOpen },
-      '---',
-      { label: 'Properties' },
-    ],
-  },
-  {
-    id: 'bonzi',
-    label: 'Bonzi Buddy.exe',
-    icon: ICONS.winamp,
-    onOpen: openBonziBuddy,
-    contextItems: def => [
-      { label: 'Open',    action: def.onOpen },
-      { label: 'Dismiss', action: () => document.getElementById('bonzi-buddy')?.remove() },
-      '---',
-      { label: 'Properties' },
-    ],
-  },
-  {
-    id: 'dialup',
-    label: 'Dial-up Internet',
-    icon: ICONS.internet,
-    onOpen: openDialup,
-    contextItems: def => [
-      { label: 'Connect', action: def.onOpen },
-      '---',
-      { label: 'Properties' },
-    ],
-  },
-  {
-    id: 'ransomware',
-    label: 'RANSOMWARE.exe',
-    icon: ICONS.mine,
-    onOpen: openRansomware,
-    contextItems: def => [
-      { label: 'Open (if you dare)', action: def.onOpen },
-      '---',
-      { label: 'Properties' },
-    ],
-  },
-  {
     id: 'outlook-express',
     label: 'Outlook Express',
     icon: ICONS.internet,
@@ -320,48 +203,12 @@ const DESKTOP_ICONS = [
     ],
   },
   {
-    id: 'ie-favorites',
-    label: 'Favorites',
-    icon: ICONS.internet,
-    onOpen: openIEFavorites,
-    contextItems: def => [
-      { label: 'Open', action: def.onOpen },
-      '---',
-      { label: 'Add Favorite...', action: () => saySpeech('Added to Favorites! ⭐', 2500, true) },
-      { label: 'Properties' },
-    ],
-  },
-  {
-    id: 'print-queue',
-    label: 'Printers',
-    icon: ICONS.myComputer,
-    onOpen: openPrintQueue,
-    contextItems: def => [
-      { label: 'Open', action: def.onOpen },
-      { label: 'Set as Default Printer', action: () => saySpeech('HP DeskJet 722C set as default 🖨️', 3000, true) },
-      '---',
-      { label: 'Properties' },
-    ],
-  },
-  {
     id: 'neko',
     label: 'Neko.exe',
     icon: ICONS.winamp,
     onOpen: spawnNeko,
     contextItems: def => [
       { label: 'Run', action: def.onOpen },
-      '---',
-      { label: 'Properties' },
-    ],
-  },
-  {
-    id: 'radio',
-    label: 'Internet Radio',
-    icon: ICONS.winamp,
-    onOpen: openRadio,
-    contextItems: def => [
-      { label: 'Open', action: def.onOpen },
-      { label: 'Play', action: def.onOpen },
       '---',
       { label: 'Properties' },
     ],
@@ -408,34 +255,30 @@ function initStartMenu() {
         <img src="${ICONS.internet}" alt=""> Internet
       </div>
       <div class="start-menu-separator"></div>
-      <div class="start-menu-item" id="sm-calc"><img src="${ICONS.notepad}" alt=""> Calculator</div>
-      <div class="start-menu-item" id="sm-snake"><img src="${ICONS.mine}" alt=""> Snake</div>
-      <div class="start-menu-item" id="sm-terminal"><img src="${ICONS.myComputer}" alt=""> Command Prompt</div>
-      <div class="start-menu-item" id="sm-defrag">💾 Disk Defragmenter</div>
-      <div class="start-menu-item" id="sm-dlram">🧠 Download More RAM</div>
-      <div class="start-menu-item" id="sm-y2k">📅 Y2K Compliance</div>
       <div class="start-menu-item" id="sm-winamp">🎵 Winamp</div>
       <div class="start-menu-item" id="sm-paint">🎨 Paint</div>
-      <div class="start-menu-item" id="sm-icq">💬 ICQ</div>
+      <div class="start-menu-item" id="sm-browser">🌐 !e Browser</div>
       <div class="start-menu-item" id="sm-calendar">📅 Calendar</div>
       <div class="start-menu-item" id="sm-blog">📡 Blog Reader</div>
       <div class="start-menu-item" id="sm-lab">🧪 Creative Lab</div>
       <div class="start-menu-item" id="sm-research">🔬 Research</div>
       <div class="start-menu-item" id="sm-magi">🔴 MAGI System</div>
-      <div class="start-menu-item" id="sm-browser">🌐 !e Browser</div>
+      <div class="start-menu-separator"></div>
+      <div class="start-menu-item" id="sm-calc"><img src="${ICONS.notepad}" alt=""> Calculator</div>
+      <div class="start-menu-item" id="sm-snake"><img src="${ICONS.mine}" alt=""> Snake</div>
+      <div class="start-menu-item" id="sm-terminal"><img src="${ICONS.myComputer}" alt=""> Command Prompt</div>
+      <div class="start-menu-item" id="sm-taskmanager">🖥️ Task Manager</div>
+      <div class="start-menu-item" id="sm-defrag">💾 Disk Defragmenter</div>
+      <div class="start-menu-item" id="sm-dlram">🧠 Download More RAM</div>
+      <div class="start-menu-item" id="sm-y2k">📅 Y2K Compliance</div>
       <div class="start-menu-separator"></div>
       <div class="start-menu-item" id="sm-tetris">🎮 Tetris</div>
       <div class="start-menu-item" id="sm-pinball">🎱 Pinball</div>
       <div class="start-menu-item" id="sm-bonzi">🦍 Bonzi Buddy</div>
-      <div class="start-menu-item" id="sm-taskmanager">🖥️ Task Manager</div>
       <div class="start-menu-item" id="sm-dialup">📞 Dial-up Internet</div>
       <div class="start-menu-item" id="sm-ransomware">💀 RANSOMWARE.exe</div>
-      <div class="start-menu-separator"></div>
-      <div class="start-menu-item" id="sm-outlook">📧 Outlook Express</div>
-      <div class="start-menu-item" id="sm-ie-favorites">⭐ Favorites</div>
-      <div class="start-menu-item" id="sm-notepad-new">📝 Notepad</div>
+      <div class="start-menu-item" id="sm-ie-favorites">⭐ IE Favorites</div>
       <div class="start-menu-item" id="sm-radio">📻 Internet Radio</div>
-      <div class="start-menu-item" id="sm-neko">🐱 Neko.exe</div>
       <div class="start-menu-item" id="sm-printqueue">🖨️ Printers</div>
       <div class="start-menu-separator"></div>
       <div class="start-menu-item" onclick="window.openShutdownDialog()">
@@ -452,24 +295,20 @@ function initStartMenu() {
   menu.querySelector('#sm-y2k')?.addEventListener('click', () => { menu.classList.remove('open'); openY2K(); });
   menu.querySelector('#sm-winamp')?.addEventListener('click', () => { menu.classList.remove('open'); openWinamp(); });
   menu.querySelector('#sm-paint')?.addEventListener('click', () => { menu.classList.remove('open'); openPaint(); });
-  menu.querySelector('#sm-icq')?.addEventListener('click', () => { menu.classList.remove('open'); openICQ(); });
   menu.querySelector('#sm-calendar')?.addEventListener('click', () => { menu.classList.remove('open'); openCalendar(); });
   menu.querySelector('#sm-blog')?.addEventListener('click', () => { menu.classList.remove('open'); openBlogReader(); });
   menu.querySelector('#sm-lab')?.addEventListener('click', () => { menu.classList.remove('open'); openCreativeLab(); });
   menu.querySelector('#sm-research')?.addEventListener('click', () => { menu.classList.remove('open'); openResearch(); });
   menu.querySelector('#sm-magi')?.addEventListener('click', () => { menu.classList.remove('open'); openMAGI(); });
   menu.querySelector('#sm-browser')?.addEventListener('click', () => { menu.classList.remove('open'); openExclamationE(); });
+  menu.querySelector('#sm-taskmanager')?.addEventListener('click', () => { menu.classList.remove('open'); openTaskManager(); });
   menu.querySelector('#sm-tetris')?.addEventListener('click', () => { menu.classList.remove('open'); openTetris(); });
   menu.querySelector('#sm-pinball')?.addEventListener('click', () => { menu.classList.remove('open'); openPinball(); });
   menu.querySelector('#sm-bonzi')?.addEventListener('click', () => { menu.classList.remove('open'); openBonziBuddy(); });
-  menu.querySelector('#sm-taskmanager')?.addEventListener('click', () => { menu.classList.remove('open'); openTaskManager(); });
   menu.querySelector('#sm-dialup')?.addEventListener('click', () => { menu.classList.remove('open'); openDialup(); });
   menu.querySelector('#sm-ransomware')?.addEventListener('click', () => { menu.classList.remove('open'); openRansomware(); });
-  menu.querySelector('#sm-outlook')?.addEventListener('click', () => { menu.classList.remove('open'); openOutlookExpress(); });
   menu.querySelector('#sm-ie-favorites')?.addEventListener('click', () => { menu.classList.remove('open'); openIEFavorites(); });
-  menu.querySelector('#sm-notepad-new')?.addEventListener('click', () => { menu.classList.remove('open'); openNotepad(); });
   menu.querySelector('#sm-radio')?.addEventListener('click', () => { menu.classList.remove('open'); openRadio(); });
-  menu.querySelector('#sm-neko')?.addEventListener('click', () => { menu.classList.remove('open'); spawnNeko(); });
   menu.querySelector('#sm-printqueue')?.addEventListener('click', () => { menu.classList.remove('open'); openPrintQueue(); });
 }
 
