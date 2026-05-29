@@ -3757,6 +3757,8 @@ const PRINTER_MESSAGES = [
 ];
 
 export function openPrinterError() {
+  // Don't stack — only one at a time
+  if (document.querySelector('.win98-printer-error')) return;
   const msg = PRINTER_MESSAGES[Math.floor(Math.random() * PRINTER_MESSAGES.length)];
   const dlg = document.createElement('div');
   dlg.className = 'win98-printer-error';
@@ -3787,7 +3789,7 @@ let _printerErrorInterval = null;
 export function startPrinterErrors() {
   if (_printerErrorInterval) return;
   function scheduleNext() {
-    const delay = 120000 + Math.random() * 60000; // 2-3 minutes
+    const delay = 480000 + Math.random() * 240000; // 8-12 minutes
     _printerErrorInterval = setTimeout(() => {
       openPrinterError();
       scheduleNext();
@@ -4174,13 +4176,12 @@ export function spawnNeko() {
   function resetSleepTimer() {
     clearTimeout(sleepTimer);
     if (state === 'sleeping') setState('idle');
-    sleepTimer = setTimeout(() => setState('sleeping'), 10000);
+    sleepTimer = setTimeout(() => setState('sleeping'), 30000);
   }
 
   // Follow cursor — convert viewport coords to screen-content local space
   document.addEventListener('mousemove', e => {
     if (!_desktop.contains(neko)) return;
-    resetSleepTimer();
     const screenEl = document.getElementById('screen-content') || _desktop;
     const rect = screenEl.getBoundingClientRect();
     // Linear approximation: map bounding rect → local pre-transform space
@@ -4194,6 +4195,7 @@ export function spawnNeko() {
     const dist = Math.sqrt(dx*dx + dy*dy);
 
     if (dist > 80) {
+      resetSleepTimer(); // only wake when actively chasing
       setState('running');
       const maxX = screenEl.offsetWidth  - 44;
       const maxY = screenEl.offsetHeight - 72; // leave room for taskbar
