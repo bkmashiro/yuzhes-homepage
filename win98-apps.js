@@ -858,9 +858,9 @@ export function openPaint() {
 
 /* ─── ICQ Messenger ─── */
 const ICQ_HISTORY = [
-  { from: 'nujabes_fan', msg: 'yo, seen the new vocaloid drops?' },
+  { from: 'Rei_Ayanami_00', msg: 'yo, seen the new vocaloid drops?' },
   { from: 'me', msg: 'not yet, link?' },
-  { from: 'nujabes_fan', msg: 'check ur miku folder lol' },
+  { from: 'Rei_Ayanami_00', msg: 'check ur miku folder lol' },
   { from: 'system', msg: '*** wasm_enjoyer has joined ***' },
   { from: 'wasm_enjoyer', msg: 'anyone working on their thesis?' },
   { from: 'me', msg: 'always 😭' },
@@ -877,7 +877,7 @@ export function openICQ() {
     </div>`;
   }).join('');
 
-  openWindow('icq', 'ICQ — nujabes_fan', ICONS.icq, `
+  openWindow('icq', 'ICQ — Rei_Ayanami_00', ICONS.icq, `
     <div style="display:flex;flex-direction:column;height:100%;font-family:Tahoma,Arial,sans-serif">
       <div style="background:#ff6600;color:#fff;font-size:11px;padding:4px 8px;display:flex;justify-content:space-between;align-items:center">
         <span>🟢 Online — <b>yuzhes</b></span><span style="font-size:10px">ICQ 2000b</span>
@@ -916,7 +916,7 @@ export function openICQ() {
       const log2 = document.getElementById('icq-log');
       if (log2) {
         log2.innerHTML += `<div style="margin:3px 0;display:flex;flex-direction:column;align-items:flex-start">
-          <span style="font-size:9px;color:#808080">nujabes_fan</span>
+          <span style="font-size:9px;color:#808080">Rei_Ayanami_00</span>
           <span style="font-size:11px;background:#fff;border:1px solid #aaa;padding:2px 6px;max-width:80%">${reply}</span>
         </div>`;
         log2.scrollTop = log2.scrollHeight;
