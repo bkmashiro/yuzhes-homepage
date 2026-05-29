@@ -328,7 +328,6 @@ export function openExclamationE(startUrl) {
     setStatus(txt || 'Connecting…');
   }
   function showError() {
-    console.log('[!e] showError() called for', currentUrl);
     if (loading) loading.style.display = 'none';
     if (errDiv)  errDiv.style.display  = 'block';
     setStatus(`Cannot display: ${currentUrl}`);
@@ -360,48 +359,42 @@ export function openExclamationE(startUrl) {
     }
 
     const myId = ++_navId;
-    console.log('[!e] navigate → myId=', myId, 'target=', target);
     frame.src  = target;
 
     // Fallback: if load never fires within 10s (server down / extreme slowness)
     loadTimer = setTimeout(() => {
-      if (_navId === myId) { console.log('[!e] timeout fired for navId=', myId); showError(); }
+      if (_navId === myId) showError();
     }, 10000);
   }
 
   frame.addEventListener('load', () => {
-    console.log('[!e] load event fired, _navId=', _navId, 'src=', frame.src);
-    if (_navId === 0) { console.log('[!e] ignoring pre-nav load'); return; }
+    if (_navId === 0) return; // pre-navigation about:blank load, ignore
     clearTimeout(loadTimer);
 
     const snapId = _navId;
 
     try {
       const loc = frame.contentDocument?.location?.href ?? '';
-      console.log('[!e] contentDocument accessible, loc=', loc);
-      if (loc === '') {
-        // Empty string = transitional blank doc while navigating to target.
-        // The real load event will fire next; just wait.
-        console.log('[!e] loc="" → transitional state, waiting for next load');
-        return;
-      }
-      if (loc === 'about:blank') showError();  // X-Frame-Options killed it
-      else { hideLoading(); if (addr) addr.value = loc; }
-    } catch (err) {
-      console.log('[!e] contentDocument threw (cross-origin):', err.name, '— rechecking in 400ms');
-      setTimeout(() => {
-        if (_navId !== snapId) { console.log('[!e] nav changed, skip recheck'); return; }
-        try {
-          const loc2 = frame.contentDocument?.location?.href ?? '';
-          console.log('[!e] recheck: contentDocument accessible, loc2=', loc2);
-          if (!loc2 || loc2 === 'about:blank') showError();
-          else hideLoading();
-        } catch (err2) {
-          console.log('[!e] recheck: still cross-origin →', err2.name, '→ hideLoading');
-          hideLoading();
-        }
-      }, 400);
+      if (loc === 'about:blank') { showError(); return; } // X-Frame-Options blocked it
+      if (loc !== '') { hideLoading(); if (addr) addr.value = loc; return; } // same-origin success
+
+      // loc==='' : Chrome's cross-origin state at load time — contentDocument accessible
+      // but href reads as ''. Fall through to the 400ms recheck below.
+    } catch (_) {
+      // SecurityError: contentDocument inaccessible (cross-origin). Fall through.
     }
+
+    // Shared recheck for loc==='' and SecurityError: after 400ms the page has settled.
+    setTimeout(() => {
+      if (_navId !== snapId) return;
+      try {
+        const loc2 = frame.contentDocument?.location?.href ?? '';
+        if (loc2 === 'about:blank') showError();
+        else hideLoading(); // '' or real URL → cross-origin success
+      } catch (_) {
+        hideLoading(); // still cross-origin → success
+      }
+    }, 400);
   });
 
   // Toolbar controls
