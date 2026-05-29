@@ -3145,7 +3145,7 @@ export function openDialup() {
       // Show mail notification
       const note = document.createElement('div');
       note.style.cssText = `
-        position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+        position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
         background:#ffffcc; border:2px solid #888; padding:16px 24px;
         font-family:inherit; font-size:13px; z-index:9999;
         box-shadow:4px 4px 8px rgba(0,0,0,0.4); text-align:center;
@@ -3153,7 +3153,7 @@ export function openDialup() {
       note.innerHTML = `<div style="font-size:24px;margin-bottom:8px">📧</div>
         <b>You've Got Mail!</b><br><span style="font-size:11px">3 unread messages</span><br>
         <button style="margin-top:10px;padding:3px 14px;font-family:inherit;font-size:11px;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;cursor:pointer" onclick="this.parentElement.remove()">OK</button>`;
-      document.body.appendChild(note);
+      (document.getElementById('win98-desktop') || document.body).appendChild(note);
       saySpeech('Connected at 56 Kbps! You\'ve got mail! 📧', 4000, true);
     }, 500);
   }
@@ -3615,7 +3615,7 @@ export function openIEFavorites() {
   document.getElementById('ie-fav-add')?.addEventListener('click', () => {
     const dlg = document.createElement('div');
     dlg.style.cssText = `
-      position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+      position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
       background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;
       box-shadow:3px 3px 6px rgba(0,0,0,0.4);z-index:10001;
       font-family:inherit;font-size:12px;min-width:280px;
@@ -3636,7 +3636,7 @@ export function openIEFavorites() {
         </div>
       </div>
     `;
-    document.body.appendChild(dlg);
+    (document.getElementById('win98-desktop') || document.body).appendChild(dlg);
   });
 
   // Folder expand/collapse
@@ -3678,7 +3678,7 @@ export function openFloppyError(filename) {
   const dlg = document.createElement('div');
   dlg.id = progressId;
   dlg.style.cssText = `
-    position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+    position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
     background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;
     box-shadow:3px 3px 8px rgba(0,0,0,0.5);z-index:10005;
     font-family:inherit;font-size:12px;min-width:340px;
@@ -3701,7 +3701,7 @@ export function openFloppyError(filename) {
       <div id="floppy-pct" style="text-align:right;font-size:10px;font-family:monospace">0%</div>
     </div>
   `;
-  document.body.appendChild(dlg);
+  (document.getElementById('win98-desktop') || document.body).appendChild(dlg);
 
   // Animate to 73%
   let pct = 0;
@@ -3719,7 +3719,7 @@ export function openFloppyError(filename) {
         // Show Win98 error dialog
         const errDlg = document.createElement('div');
         errDlg.style.cssText = `
-          position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+          position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
           background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;
           box-shadow:3px 3px 8px rgba(0,0,0,0.5);z-index:10006;
           font-family:inherit;font-size:12px;min-width:360px;
@@ -3740,7 +3740,7 @@ export function openFloppyError(filename) {
             <button onclick="this.closest('div[style]').remove()" style="padding:4px 20px;font-size:11px;font-family:inherit;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;cursor:pointer">OK</button>
           </div>
         `;
-        document.body.appendChild(errDlg);
+        (document.getElementById('win98-desktop') || document.body).appendChild(errDlg);
       }, 2000);
     }
     if (barEl) barEl.style.width = `${pct}%`;
@@ -3761,7 +3761,7 @@ export function openPrinterError() {
   const dlg = document.createElement('div');
   dlg.className = 'win98-printer-error';
   dlg.style.cssText = `
-    position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+    position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
     background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;
     box-shadow:3px 3px 8px rgba(0,0,0,0.5);z-index:10004;
     font-family:inherit;font-size:12px;min-width:340px;max-width:400px;
@@ -3779,7 +3779,7 @@ export function openPrinterError() {
       <button class="printer-ok-btn" style="padding:4px 20px;font-size:11px;font-family:inherit;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;cursor:pointer">OK</button>
     </div>
   `;
-  document.body.appendChild(dlg);
+  (document.getElementById('win98-desktop') || document.body).appendChild(dlg);
   dlg.querySelectorAll('.printer-ok-btn').forEach(btn => btn.addEventListener('click', () => dlg.remove()));
 }
 
@@ -4070,7 +4070,8 @@ export function openNotepad() {
 /* ─── Neko desktop pet ─── */
 let _nekoEl = null;
 export function spawnNeko() {
-  if (_nekoEl && document.body.contains(_nekoEl)) {
+  const _desktop = document.getElementById('win98-desktop') || document.body;
+  if (_nekoEl && _desktop.contains(_nekoEl)) {
     saySpeech('Neko is already here! 🐱', 2500, true);
     return;
   }
@@ -4079,7 +4080,7 @@ export function spawnNeko() {
   neko.id = 'neko-pet';
   _nekoEl = neko;
   neko.style.cssText = `
-    position:fixed;z-index:8000;width:40px;height:40px;
+    position:absolute;z-index:8000;width:40px;height:40px;
     left:200px;top:200px;cursor:pointer;user-select:none;
     transition:left 0.3s ease, top 0.3s ease;
     pointer-events:auto;
@@ -4148,7 +4149,7 @@ export function spawnNeko() {
     ">zzz</div>
   `;
 
-  document.body.appendChild(neko);
+  _desktop.appendChild(neko);
 
   // State machine
   let state = 'idle'; // idle, running, sleeping, scratching, surprised
@@ -4176,25 +4177,31 @@ export function spawnNeko() {
     sleepTimer = setTimeout(() => setState('sleeping'), 10000);
   }
 
-  // Follow cursor
+  // Follow cursor — convert viewport coords to screen-content local space
   document.addEventListener('mousemove', e => {
-    if (!document.body.contains(neko)) return;
+    if (!_desktop.contains(neko)) return;
     resetSleepTimer();
+    const screenEl = document.getElementById('screen-content') || _desktop;
+    const rect = screenEl.getBoundingClientRect();
+    // Linear approximation: map bounding rect → local pre-transform space
+    const localX = rect.width  > 0 ? (e.clientX - rect.left) / rect.width  * screenEl.offsetWidth  : e.clientX;
+    const localY = rect.height > 0 ? (e.clientY - rect.top)  / rect.height * screenEl.offsetHeight : e.clientY;
+
     const nx = parseInt(neko.style.left) || 200;
     const ny = parseInt(neko.style.top) || 200;
-    const dx = e.clientX - nx - 20;
-    const dy = e.clientY - ny - 20;
+    const dx = localX - nx - 20;
+    const dy = localY - ny - 20;
     const dist = Math.sqrt(dx*dx + dy*dy);
 
     if (dist > 80) {
       setState('running');
-      targetX = e.clientX - 20;
-      targetY = e.clientY - 20;
-      neko.style.left = `${Math.max(0, Math.min(window.innerWidth - 44, targetX))}px`;
-      neko.style.top  = `${Math.max(0, Math.min(window.innerHeight - 44, targetY))}px`;
+      const maxX = screenEl.offsetWidth  - 44;
+      const maxY = screenEl.offsetHeight - 72; // leave room for taskbar
+      neko.style.left = `${Math.max(0, Math.min(maxX, localX - 20))}px`;
+      neko.style.top  = `${Math.max(0, Math.min(maxY, localY - 20))}px`;
 
       // Flip horizontally if moving left
-      const body = document.getElementById('neko-body');
+      const body = neko.querySelector('#neko-body');
       if (body) body.style.transform = dx < 0 ? 'scaleX(-1)' : '';
     } else if (state === 'running') {
       setState('idle');
@@ -4268,7 +4275,7 @@ export function spawnNeko() {
 
   // Surprised when a new window opens — observe DOM
   const nekoObs = new MutationObserver(mutations => {
-    if (!document.body.contains(neko)) { nekoObs.disconnect(); return; }
+    if (!_desktop.contains(neko)) { nekoObs.disconnect(); return; }
     for (const m of mutations) {
       for (const node of m.addedNodes) {
         if (node.classList?.contains('win98-window')) {
