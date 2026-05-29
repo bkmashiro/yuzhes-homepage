@@ -511,6 +511,36 @@ if (character) {
   }
 }
 
+/* ─── Character hover-to-hide ───────────────────────────────────────────────
+ * Since #character has pointer-events:none we can't use CSS :hover.
+ * Instead, track mouse position and compare to the character's bounding rect.
+ * Also hide when mouse is in the bottom-right tray zone (where popups appear).
+ * ─────────────────────────────────────────────────────────────────────────── */
+{
+  let _charHideRaf = null;
+  document.addEventListener('mousemove', e => {
+    if (!character || !character.classList.contains('visible')) return;
+    cancelAnimationFrame(_charHideRaf);
+    _charHideRaf = requestAnimationFrame(() => {
+      const r = character.getBoundingClientRect();
+      // Expand hitbox slightly so hiding starts just before cursor reaches the body
+      const pad = 24;
+      const overChar = (
+        e.clientX >= r.left - pad && e.clientX <= r.right + pad &&
+        e.clientY >= r.top  - pad && e.clientY <= r.bottom + pad
+      );
+      // Also hide when near the bottom-right corner (system tray popup zone)
+      const nearTray = (
+        e.clientX > window.innerWidth  - 180 &&
+        e.clientY > window.innerHeight - 200
+      );
+      const shouldHide = overChar || nearTray;
+      character.classList.toggle('hover-hide', shouldHide);
+      if (speechBubble) speechBubble.classList.toggle('hover-hide', shouldHide);
+    });
+  });
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    Interactive calibration UI (?calibrate)
    ═══════════════════════════════════════════════════════════════════════════ */
