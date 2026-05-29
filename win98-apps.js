@@ -379,7 +379,13 @@ export function openExclamationE(startUrl) {
     try {
       const loc = frame.contentDocument?.location?.href ?? '';
       console.log('[!e] contentDocument accessible, loc=', loc);
-      if (!loc || loc === 'about:blank') showError();
+      if (loc === '') {
+        // Empty string = transitional blank doc while navigating to target.
+        // The real load event will fire next; just wait.
+        console.log('[!e] loc="" → transitional state, waiting for next load');
+        return;
+      }
+      if (loc === 'about:blank') showError();  // X-Frame-Options killed it
       else { hideLoading(); if (addr) addr.value = loc; }
     } catch (err) {
       console.log('[!e] contentDocument threw (cross-origin):', err.name, '— rechecking in 400ms');
