@@ -1351,6 +1351,7 @@ function openICQProps() {
 
 /* ─── Blog RSS Reader ─── */
 const RSS_FEED_URLS = [
+  'https://corsproxy.io/?url=https://neoblog-ten.vercel.app/atom.xml',
   'https://neoblog-ten.vercel.app/atom.xml',
 ];
 let _rssEntries = [];
