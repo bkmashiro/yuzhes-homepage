@@ -3437,7 +3437,7 @@ export function openICQBuddyList() {
       <div style="padding:4px 8px;background:#ccffcc;border-bottom:1px solid #99cc99;display:flex;align-items:center;gap:6px">
         <span style="font-size:18px">🌸</span>
         <div>
-          <div style="font-weight:bold">SuN_SHiNe_GiRL</div>
+          <div style="font-weight:bold">Rei_Ayanami_00</div>
           <div style="font-size:10px;color:#008800">● Online</div>
         </div>
       </div>
