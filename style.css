@@ -575,6 +575,16 @@ html, body {
   font-size: 12px;
 }
 
+/* ─── MAGI window: override titlebar for terminal look ─── */
+#win-magi .window-titlebar {
+  background: #001100;
+  color: #00ff41;
+  border-bottom: 1px solid #00ff41;
+}
+#win-magi .window-title-text { color: #00ff41; letter-spacing: 2px; font-size: 10px; }
+#win-magi .window-body { padding: 0; background: #000; }
+#win-magi .window-btn { background: #002200; color: #00ff41; border-color: #00ff41 #003300 #003300 #00ff41; }
+
 /* ─── Screensaver ─── */
 #screensaver {
   position: absolute;

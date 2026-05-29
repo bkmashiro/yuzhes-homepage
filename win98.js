@@ -37,6 +37,9 @@ const ICONS = {
   winamp:     `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='2' y='2' width='28' height='28' rx='2' fill='%23222'/><rect x='4' y='4' width='24' height='8' fill='%23111'/><text x='5' y='10' font-family='monospace' font-size='7' fill='%2300ff00'>NOW PLAYING</text><circle cx='10' cy='20' r='5' fill='%23444'/><circle cx='10' cy='20' r='2' fill='%23222'/><path d='M20 16 L26 20 L20 24 Z' fill='%2300ff00'/></svg>`,
   icq:        `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='10' cy='12' r='5' fill='%23ff6600'/><circle cx='22' cy='20' r='6' fill='%2300cc00'/><circle cx='10' cy='12' r='2' fill='%23fff'/><circle cx='22' cy='20' r='2.5' fill='%23fff'/></svg>`,
   cal:        `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='2' y='4' width='28' height='26' rx='1' fill='%23fff' stroke='%23808080' stroke-width='1'/><rect x='2' y='4' width='28' height='7' fill='%23000080'/><rect x='8' y='2' width='3' height='5' rx='1' fill='%23c0c0c0'/><rect x='21' y='2' width='3' height='5' rx='1' fill='%23c0c0c0'/><text x='6' y='9' font-family='sans-serif' font-size='5' fill='%23fff' font-weight='bold'>CALENDAR</text><rect x='5' y='14' width='4' height='3' fill='%23e0e0ff'/><rect x='10' y='14' width='4' height='3' fill='%23e0e0ff'/><rect x='15' y='14' width='4' height='3' fill='%23e0e0ff'/><rect x='20' y='14' width='4' height='3' fill='%23e0e0ff'/><rect x='25' y='14' width='4' height='3' fill='%23ffd0d0'/><rect x='5' y='19' width='4' height='3' fill='%23e0e0ff'/><rect x='10' y='19' width='4' height='3' fill='%23e0e0ff'/><rect x='15' y='19' width='4' height='3' fill='%23000080'/><rect x='20' y='19' width='4' height='3' fill='%23e0e0ff'/><rect x='25' y='19' width='4' height='3' fill='%23ffd0d0'/><rect x='5' y='24' width='4' height='3' fill='%23e0e0ff'/><rect x='10' y='24' width='4' height='3' fill='%23e0e0ff'/></svg>`,
+  rss:        `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='2' y='2' width='28' height='28' rx='3' fill='%23f60'/><circle cx='8' cy='24' r='3' fill='%23fff'/><path d='M5 18 Q14 18 14 27' stroke='%23fff' stroke-width='2.5' fill='none'/><path d='M5 11 Q21 11 21 27' stroke='%23fff' stroke-width='2.5' fill='none'/><path d='M5 5 Q27 5 27 27' stroke='%23fff' stroke-width='2.5' fill='none'/></svg>`,
+  lab:        `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='13' y='2' width='6' height='14' fill='%23c0c0c0' stroke='%23808080' stroke-width='1'/><path d='M10 16 L6 28 L26 28 L22 16Z' fill='%23e0f0ff' stroke='%23808080' stroke-width='1'/><circle cx='12' cy='22' r='2' fill='%2300ccff' opacity='0.8'/><circle cx='19' cy='25' r='1.5' fill='%2300ccff' opacity='0.6'/><circle cx='15' cy='20' r='1' fill='%230088ff' opacity='0.9'/><rect x='10' y='2' width='12' height='3' rx='1' fill='%23808080'/></svg>`,
+  research:   `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='4' y='2' width='20' height='26' rx='1' fill='%23fff' stroke='%23808080' stroke-width='1'/><rect x='4' y='2' width='20' height='5' fill='%23000080'/><rect x='7' y='10' width='14' height='1.5' fill='%23333'/><rect x='7' y='14' width='14' height='1.5' fill='%23333'/><rect x='7' y='18' width='10' height='1.5' fill='%23333'/><circle cx='24' cy='24' r='5' fill='%23c0c0c0' stroke='%23808080' stroke-width='1'/><line x1='27.5' y1='27.5' x2='30' y2='30' stroke='%23808080' stroke-width='2'/><circle cx='24' cy='24' r='2.5' fill='%23fff'/></svg>`,
 };
 
 /* ─── Desktop icon definitions ─── */
@@ -193,6 +196,41 @@ const DESKTOP_ICONS = [
         { label: '🔴 Do Not Disturb', action: () => saySpeech('Status: DND 🔴', 3000, true) },
         { label: '👻 Invisible',   action: () => saySpeech('You are now a ghost 👻', 3000, true) },
       ]},
+      '---',
+      { label: 'Properties', action: openICQProps },
+    ],
+  },
+  {
+    id: 'blog',
+    label: 'Blog Reader',
+    icon: ICONS.rss,
+    onOpen: openBlogReader,
+    contextItems: def => [
+      { label: 'Open',    action: def.onOpen },
+      { label: 'Refresh', action: () => { def.onOpen(); loadRSS(); } },
+      '---',
+      { label: 'Visit Blog', action: () => window.open('https://blog.yuzhes.com', '_blank') },
+      { label: 'Properties' },
+    ],
+  },
+  {
+    id: 'lab',
+    label: 'Creative Lab',
+    icon: ICONS.lab,
+    onOpen: openCreativeLab,
+    contextItems: def => [
+      { label: 'Open', action: def.onOpen },
+      '---',
+      { label: 'Properties' },
+    ],
+  },
+  {
+    id: 'research',
+    label: 'Research',
+    icon: ICONS.research,
+    onOpen: openResearch,
+    contextItems: def => [
+      { label: 'Open', action: def.onOpen },
       '---',
       { label: 'Properties' },
     ],
@@ -1085,6 +1123,230 @@ function openCalendar() {
   });
 }
 
+/* ─── ICQ Properties ─── */
+function openICQProps() {
+  openWindow('icq-props', 'ICQ — Properties', ICONS.icq, `
+    <div style="padding:12px;font-size:12px">
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:10px">
+        <div style="font-size:36px;line-height:1">💬</div>
+        <div>
+          <p><b>ICQ 2000b</b></p>
+          <p style="color:#808080;font-size:10px;margin-top:2px">Version 2000b Build 3278</p>
+        </div>
+      </div>
+      <div class="inset-panel" style="font-size:11px;display:flex;flex-direction:column;gap:4px">
+        <div>UIN: <b>12345678</b></div>
+        <div>Nickname: <b>yuzhes</b></div>
+        <div>Status: <b style="color:#008000">🟢 Online</b></div>
+        <div>Messages sent: <b>∞</b></div>
+        <div>Contacts online: <b>2</b></div>
+      </div>
+      <p style="margin-top:8px;color:#808080;font-size:10px">ICQ = "I Seek You" — founded 1996 by Mirabilis</p>
+      <div style="margin-top:8px;display:flex;justify-content:flex-end">
+        <button onclick="document.getElementById('win-icq-props')?.remove();document.getElementById('tb-icq-props')?.remove()"
+          style="font-size:11px;font-family:inherit;padding:3px 16px;cursor:pointer;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff">OK</button>
+      </div>
+    </div>
+  `, { width: 260, height: 210 });
+}
+
+/* ─── Blog RSS Reader ─── */
+const RSS_FEED = 'https://neoblog-ten.vercel.app/atom.xml';
+let _rssEntries = [];
+
+async function loadRSS() {
+  const listEl  = document.getElementById('rss-list');
+  const infoEl  = document.getElementById('rss-info');
+  const bodyEl  = document.getElementById('rss-body');
+  if (!listEl) return;
+
+  if (infoEl) { infoEl.textContent = '📡 Fetching feed…'; infoEl.style.color = '#adf'; }
+  listEl.innerHTML = '<div style="padding:8px;color:#808080;font-size:10px">Loading…</div>';
+
+  try {
+    const res  = await fetch(RSS_FEED);
+    const text = await res.text();
+    const doc  = new DOMParser().parseFromString(text, 'application/xml');
+    _rssEntries = Array.from(doc.querySelectorAll('entry'));
+
+    if (infoEl) { infoEl.textContent = `📰 ${_rssEntries.length} posts`; infoEl.style.color = '#fff'; }
+
+    listEl.innerHTML = _rssEntries.map((e, i) => {
+      const title = e.querySelector('title')?.textContent ?? '(untitled)';
+      const date  = (e.querySelector('published,updated')?.textContent ?? '').slice(0, 10);
+      return `<div class="rss-item" data-idx="${i}"
+        style="padding:5px 8px;border-bottom:1px solid #e8e8e8;cursor:pointer;user-select:none">
+        <div style="font-weight:bold;font-size:10px;line-height:1.3;margin-bottom:1px">${title}</div>
+        <div style="font-size:9px;color:#808080">${date}</div>
+      </div>`;
+    }).join('');
+
+    listEl.querySelectorAll('.rss-item').forEach(item => {
+      item.addEventListener('click', () => {
+        listEl.querySelectorAll('.rss-item').forEach(r => {
+          r.style.background = ''; r.style.color = '';
+        });
+        item.style.background = '#000080'; item.style.color = '#fff';
+        item.querySelector('div:last-child').style.color = '#adf';
+        showRSSEntry(_rssEntries[parseInt(item.dataset.idx)], bodyEl);
+      });
+      item.addEventListener('dblclick', () => {
+        const link = _rssEntries[parseInt(item.dataset.idx)]?.querySelector('link')?.getAttribute('href');
+        if (link) window.open(link, '_blank');
+      });
+    });
+
+    if (_rssEntries.length) listEl.querySelector('.rss-item')?.click();
+  } catch (err) {
+    if (infoEl) { infoEl.textContent = '❌ Failed to load'; infoEl.style.color = '#f88'; }
+    listEl.innerHTML = `<div style="padding:10px;font-size:10px;color:#c00">
+      Could not fetch RSS feed.<br><br>
+      <a href="https://blog.yuzhes.com" target="_blank" style="color:#00f">Open blog in browser</a>
+    </div>`;
+  }
+}
+
+function showRSSEntry(entry, bodyEl) {
+  if (!bodyEl || !entry) return;
+  const title   = entry.querySelector('title')?.textContent ?? '';
+  const date    = (entry.querySelector('published,updated')?.textContent ?? '').slice(0, 10);
+  const link    = entry.querySelector('link')?.getAttribute('href') ?? '#';
+  const rawHTML = entry.querySelector('content,summary')?.textContent ?? '';
+  // Strip HTML tags for plain text preview
+  const text    = rawHTML.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim().slice(0, 1200);
+
+  bodyEl.innerHTML = `
+    <div style="border-bottom:1px solid #c0c0c0;padding-bottom:8px;margin-bottom:8px">
+      <div style="font-size:13px;font-weight:bold;color:#000080;margin-bottom:3px">${title}</div>
+      <div style="font-size:10px;color:#808080">${date} ·
+        <a href="${link}" target="_blank" style="color:#0000ff;text-decoration:underline">Read full post ↗</a>
+      </div>
+    </div>
+    <div style="font-size:11px;line-height:1.65;color:#222;white-space:pre-wrap">${text}${text.length >= 1200 ? '\n\n…' : ''}</div>
+    <div style="margin-top:12px;padding-top:8px;border-top:1px solid #c0c0c0">
+      <a href="${link}" target="_blank" style="font-size:11px;color:#0000ff;text-decoration:underline">→ Continue reading on blog.yuzhes.com</a>
+    </div>
+  `;
+}
+
+function openBlogReader() {
+  saySpeech('Loading blog… 📰', 3000, true);
+  openWindow('blog-reader', 'Blog Reader — blog.yuzhes.com', ICONS.rss, `
+    <div style="display:flex;flex-direction:column;height:100%;box-sizing:border-box">
+      <div style="background:#000080;color:#fff;padding:3px 8px;font-size:10px;display:flex;align-items:center;gap:8px;flex-shrink:0">
+        <span id="rss-info">📡 Initializing…</span>
+        <div style="flex:1"></div>
+        <button id="rss-refresh"
+          style="font-size:9px;padding:1px 8px;font-family:inherit;cursor:pointer;background:#1060c0;color:#fff;border:1px solid #6090e0">
+          ⟳ Refresh
+        </button>
+        <a href="https://blog.yuzhes.com" target="_blank"
+          style="font-size:9px;color:#adf;text-decoration:underline">Open in IE</a>
+      </div>
+      <div style="display:flex;flex:1;overflow:hidden">
+        <div id="rss-list"
+          style="width:190px;flex-shrink:0;border-right:2px solid;border-color:#808080 #fff #fff #808080;overflow-y:auto;background:#fff;font-family:inherit">
+        </div>
+        <div id="rss-body"
+          style="flex:1;overflow-y:auto;padding:10px;font-family:inherit;background:#fff">
+        </div>
+      </div>
+    </div>
+  `, { width: 560, height: 380 });
+
+  loadRSS();
+  document.getElementById('rss-refresh')?.addEventListener('click', loadRSS);
+}
+
+/* ─── Creative Lab ─── */
+const CREATIVE_DEMOS = [
+  { name: 'MapForge',          desc: 'Browser-based Minecraft map art generator — dithering, color matching, .schem export', url: 'https://github.com/bkmashiro/mapforge', tag: 'SvelteKit + Web Workers' },
+  { name: 'creative-lab',      desc: 'Gallery of 12+ single-file visual demos shipped every two days by a Claude agent', url: 'https://github.com/bkmashiro/creative-lab', tag: 'Canvas · WebGL · Physics' },
+  { name: 'Leverage Platform', desc: 'AI bot competition platform — sandboxed execution, real-time human-vs-bot, MCP server (13 tools)', url: 'https://github.com/bkmashiro/leverage', tag: 'NestJS + Nuxt 4' },
+  { name: 'RedScript',         desc: 'Compiler targeting Minecraft Java Edition — entity selectors as first-class types, foreach→execute', url: 'https://yuzhes.com/posts/redscript/', tag: 'Compiler · mcfunction' },
+  { name: 'yuzhes-homepage',   desc: 'This very site! Win98 CRT perspective desktop with CSS matrix3d homography', url: 'https://github.com/bkmashiro/yuzhes-homepage', tag: 'Vanilla JS · CSS3' },
+];
+
+function openCreativeLab() {
+  saySpeech('Welcome to the lab! 🧪', 3000, true);
+  const rowsHTML = CREATIVE_DEMOS.map(d => `
+    <div style="padding:8px;border-bottom:1px solid #c0c0c0;cursor:pointer"
+      onclick="window.open('${d.url}','_blank')"
+      onmouseenter="this.style.background='#000080';this.querySelectorAll('*').forEach(e=>e.style.color='#fff')"
+      onmouseleave="this.style.background='';this.querySelectorAll('*').forEach(e=>e.style.color='')">
+      <div style="font-size:12px;font-weight:bold;margin-bottom:2px">${d.name}</div>
+      <div style="font-size:10px;color:#444;margin-bottom:3px">${d.desc}</div>
+      <div style="font-size:9px;font-family:monospace;background:#e8e8e8;display:inline-block;padding:1px 6px;border-radius:2px;color:#006">${d.tag}</div>
+    </div>
+  `).join('');
+
+  openWindow('creative-lab', '🧪 Creative Lab — yuzhes', ICONS.lab, `
+    <div style="display:flex;flex-direction:column;height:100%">
+      <div style="background:#000080;color:#fff;padding:4px 10px;font-size:11px;flex-shrink:0">
+        Projects &amp; Demos — double-click any to open
+      </div>
+      <div style="flex:1;overflow-y:auto;background:#fff">
+        ${rowsHTML}
+      </div>
+      <div style="padding:4px 8px;font-size:10px;color:#808080;border-top:1px solid #c0c0c0;flex-shrink:0">
+        ${CREATIVE_DEMOS.length} items · Click to open in browser
+      </div>
+    </div>
+  `, { width: 420, height: 340 });
+}
+
+/* ─── Research ─── */
+function openResearch() {
+  const now = new Date();
+  const thesisStart = new Date('2024-09-01');
+  const thesisEnd   = new Date('2025-09-01');
+  const elapsed = Math.max(0, Math.min(1, (now - thesisStart) / (thesisEnd - thesisStart)));
+  const pct = Math.round(elapsed * 100);
+
+  openWindow('research', 'Research — yuzhes', ICONS.research, `
+    <div style="padding:12px;font-size:12px;display:flex;flex-direction:column;gap:10px;height:100%;box-sizing:border-box;overflow-y:auto">
+      <div>
+        <p style="font-weight:bold;margin-bottom:6px">📄 Master's Thesis</p>
+        <div class="inset-panel" style="font-size:11px">
+          <p><b>Topic:</b> Sandboxing Python Inside WebAssembly</p>
+          <p style="margin-top:3px"><b>Stack:</b> Rust · WASI · CPython · wazero</p>
+          <p style="margin-top:3px"><b>Repos:</b>
+            <a href="https://github.com/bkmashiro/wasi-wheels" target="_blank" style="color:#00f">wasi-wheels</a> ·
+            <a href="https://github.com/bkmashiro/shimmy-wasm-go" target="_blank" style="color:#00f">shimmy-wasm-go</a>
+          </p>
+          <div style="margin-top:8px">
+            <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+              <span>Thesis progress</span><span>${pct}%</span>
+            </div>
+            <div style="background:#fff;border:1px inset #808080;height:14px;position:relative">
+              <div style="height:100%;width:${pct}%;background:#000080;transition:width 1s ease"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <p style="font-weight:bold;margin-bottom:6px">📊 Key Papers / Posts</p>
+        <div class="inset-panel" style="font-size:11px;display:flex;flex-direction:column;gap:4px">
+          <a href="https://yuzhes.com/posts/wasm-sandbox-perf/" target="_blank" style="color:#00f;text-decoration:underline">WASM vs seccomp: Benchmarking Sandbox Startup</a>
+          <a href="https://yuzhes.com/posts/shimmy-wasm-sandbox/" target="_blank" style="color:#00f;text-decoration:underline">Shimmy WASM: When the Security Model Has No Syscalls</a>
+          <a href="https://yuzhes.com/posts/faster-crud/" target="_blank" style="color:#00f;text-decoration:underline">@faster-crud: Killing the CRUD Boilerplate in NestJS</a>
+        </div>
+      </div>
+
+      <div>
+        <p style="font-weight:bold;margin-bottom:6px">⚡ Key Findings</p>
+        <div class="inset-panel" style="font-size:11px;font-family:monospace;display:flex;flex-direction:column;gap:2px">
+          <div>WASM startup: <b style="color:#008000">~10ms</b> (rivals Python itself)</div>
+          <div>JIT speedup:  <b style="color:#008000">2–8×</b> on CPU-bound workloads</div>
+          <div>Security overhead: <b style="color:#008000">~0ms</b></div>
+          <div>Syscall surface: <b style="color:#008000">0</b> (capability-based WASI)</div>
+        </div>
+      </div>
+    </div>
+  `, { width: 380, height: 370 });
+}
+
 function openProjectDetail(project) {
   const details = {
     neoblog: {
@@ -1141,6 +1403,10 @@ function initStartMenu() {
       <div class="start-menu-item" id="sm-paint">🎨 Paint</div>
       <div class="start-menu-item" id="sm-icq">💬 ICQ</div>
       <div class="start-menu-item" id="sm-calendar">📅 Calendar</div>
+      <div class="start-menu-item" id="sm-blog">📡 Blog Reader</div>
+      <div class="start-menu-item" id="sm-lab">🧪 Creative Lab</div>
+      <div class="start-menu-item" id="sm-research">🔬 Research</div>
+      <div class="start-menu-item" id="sm-magi">🔴 MAGI System</div>
       <div class="start-menu-separator"></div>
       <div class="start-menu-item" onclick="window.openShutdownDialog()">
         <img src="${ICONS.winlogo}" alt=""> Shut Down...
@@ -1158,6 +1424,10 @@ function initStartMenu() {
   menu.querySelector('#sm-paint')?.addEventListener('click', () => { menu.classList.remove('open'); openPaint(); });
   menu.querySelector('#sm-icq')?.addEventListener('click', () => { menu.classList.remove('open'); openICQ(); });
   menu.querySelector('#sm-calendar')?.addEventListener('click', () => { menu.classList.remove('open'); openCalendar(); });
+  menu.querySelector('#sm-blog')?.addEventListener('click', () => { menu.classList.remove('open'); openBlogReader(); });
+  menu.querySelector('#sm-lab')?.addEventListener('click', () => { menu.classList.remove('open'); openCreativeLab(); });
+  menu.querySelector('#sm-research')?.addEventListener('click', () => { menu.classList.remove('open'); openResearch(); });
+  menu.querySelector('#sm-magi')?.addEventListener('click', () => { menu.classList.remove('open'); openMAGI(); });
 }
 
 /* ─── Clock ─── */
@@ -2682,7 +2952,9 @@ function openTerminal() {
       ['CLS     Clears the screen.','DIR     Displays a list of files.','ECHO    Displays messages.',
        'VER     Displays Windows version.','COLOR   Sets console colors (e.g. COLOR 0A for green).',
        'CD      Displays current directory.','FORMAT  Formats a disk (try FORMAT C:).',
-       'EXIT    Quits the command prompt.'].forEach(print);
+       'MATRIX  Display matrix rain.','MAGI    Consult MAGI Supercomputer (MAGI [question])',
+       'BLOG    Open blog RSS reader.','RESEARCH  Open research notes.',
+       'LAB     Open creative lab.','EXIT    Quits the command prompt.'].forEach(print);
     }
     else if (cmdLow === 'format c:' || cmdLow === 'format c:\\') {
       closeWindow('terminal');
@@ -2691,6 +2963,23 @@ function openTerminal() {
     else if (cmdLow === 'matrix') {
       closeWindow('terminal');
       setTimeout(() => startMatrixRain(), 300);
+    }
+    else if (cmdLow === 'magi' || cmdLow.startsWith('magi ')) {
+      const q = parts.slice(1).join(' ') || undefined;
+      closeWindow('terminal');
+      setTimeout(() => openMAGI(q), 300);
+    }
+    else if (cmdLow === 'blog') {
+      closeWindow('terminal');
+      setTimeout(() => openBlogReader(), 300);
+    }
+    else if (cmdLow === 'research') {
+      closeWindow('terminal');
+      setTimeout(() => openResearch(), 300);
+    }
+    else if (cmdLow === 'lab') {
+      closeWindow('terminal');
+      setTimeout(() => openCreativeLab(), 300);
     }
     else { print(`'${parts[0]}' is not recognized as an internal or external command.`); }
     print('');
@@ -2786,6 +3075,117 @@ function startStarfield() {
   });
 }
 
+/* ─── MAGI Supercomputer System (EVA easter egg) ─── */
+const MAGI_QUESTIONS = [
+  'Initiate Third Impact?',
+  'Deploy Unit-01?',
+  'Override self-destruct?',
+  'Accept soul transfer?',
+  'Terminate AT-Field?',
+  'Engage dummy system?',
+  'Disable pilot ejection?',
+  'Open Dirac Sea?',
+  'Begin Instrumentality?',
+  'Erase Tokyo-3?',
+];
+
+function openMAGI(question) {
+  const q = question ?? MAGI_QUESTIONS[Math.floor(Math.random() * MAGI_QUESTIONS.length)];
+  // Each MAGI has a personality (Scientist / Mother / Woman)
+  const votes = [
+    { name: 'MELCHIOR-1', role: 'Scientist',   color: '#00ff41', delay: 800  },
+    { name: 'BALTHASAR-2', role: 'Mother',      color: '#ff9900', delay: 1600 },
+    { name: 'CASPER-3',    role: 'Woman',        color: '#ff0055', delay: 2400 },
+  ];
+  // Simulate votes: scientist tends APPROVED, mother varies, woman often rejects dramatic things
+  const results = votes.map((v, i) => {
+    const roll = Math.random();
+    const approved = i === 0 ? roll > 0.25 : i === 1 ? roll > 0.45 : roll > 0.55;
+    return { ...v, approved };
+  });
+  const approvedCount = results.filter(r => r.approved).length;
+  const decision = approvedCount >= 2 ? 'APPROVED' : 'REJECTED';
+
+  openWindow('magi', 'MAGI SUPERCOMPUTER SYSTEM', ICONS.myComputer, `
+    <div id="magi-root" style="
+      background:#000;color:#00ff41;font-family:'Courier New',monospace;
+      height:100%;display:flex;flex-direction:column;padding:0;box-sizing:border-box;
+      overflow:hidden;user-select:none">
+      <div style="background:#001100;border-bottom:1px solid #00ff41;padding:6px 12px;font-size:10px;display:flex;justify-content:space-between">
+        <span style="letter-spacing:2px">NERV MAGI SYSTEM — GEHIRN CYBERNETICS</span>
+        <span id="magi-clock" style="font-size:10px"></span>
+      </div>
+      <div style="padding:10px 12px;font-size:11px;border-bottom:1px solid #003300">
+        <span style="color:#888">QUERY: </span>
+        <span style="color:#ffff00;font-weight:bold">${q}</span>
+      </div>
+      <div style="display:flex;flex:1;gap:0">
+        ${results.map((v, i) => `
+          <div style="flex:1;border-right:${i<2?'1px solid #003300':'none'};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:12px">
+            <div style="font-size:9px;letter-spacing:1px;color:#00aa00">${v.name}</div>
+            <div style="font-size:8px;color:#006600">[${v.role.toUpperCase()}]</div>
+            <div id="magi-vote-${i}" style="font-size:22px;font-weight:bold;color:#003300;transition:color 0.3s">···</div>
+            <div style="width:60px;height:4px;background:#003300;margin-top:4px">
+              <div id="magi-bar-${i}" style="height:100%;width:0%;background:${v.color};transition:width 0.8s ease"></div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      <div id="magi-decision" style="padding:10px;text-align:center;font-size:18px;font-weight:bold;letter-spacing:4px;color:#003300;border-top:1px solid #003300;transition:color 0.5s">
+        COMPUTING…
+      </div>
+    </div>
+  `, { width: 420, height: 280 });
+
+  // Animate clock
+  const clockEl = document.getElementById('magi-clock');
+  const clockTick = setInterval(() => {
+    if (!clockEl || !document.getElementById('win-magi')) { clearInterval(clockTick); return; }
+    clockEl.textContent = new Date().toLocaleTimeString('en-US', { hour12: false });
+  }, 1000);
+  if (clockEl) clockEl.textContent = new Date().toLocaleTimeString('en-US', { hour12: false });
+
+  // Animate votes one by one
+  results.forEach((v, i) => {
+    setTimeout(() => {
+      const voteEl = document.getElementById(`magi-vote-${i}`);
+      const barEl  = document.getElementById(`magi-bar-${i}`);
+      if (!voteEl) return;
+
+      // Counting animation
+      let count = 0;
+      const ticker = setInterval(() => {
+        count++;
+        voteEl.textContent = count % 2 === 0 ? '█▄▀' : '▀▄█';
+        voteEl.style.color = '#00aa00';
+        if (count > 8) {
+          clearInterval(ticker);
+          voteEl.textContent = v.approved ? 'APPROVED' : 'REJECTED';
+          voteEl.style.color = v.approved ? '#00ff41' : '#ff0055';
+          if (barEl) barEl.style.width = '100%';
+
+          // Final decision after last vote
+          if (i === results.length - 1) {
+            setTimeout(() => {
+              const decEl = document.getElementById('magi-decision');
+              if (!decEl) return;
+              decEl.textContent = `DECISION: ${decision}`;
+              decEl.style.color = decision === 'APPROVED' ? '#00ff41' : '#ff0055';
+              decEl.style.textShadow = `0 0 12px ${decision === 'APPROVED' ? '#00ff41' : '#ff0055'}`;
+              saySpeech(
+                decision === 'APPROVED'
+                  ? `MAGI System: ${approvedCount}-${3-approvedCount} — APPROVED ⚠️`
+                  : `MAGI System: ${3-approvedCount}-${approvedCount} — REJECTED 🛡️`,
+                5000, true
+              );
+            }, 600);
+          }
+        }
+      }, 120);
+    }, v.delay);
+  });
+}
+
 /* ─── Init ─── */
 export function initWin98() {
   initDesktopIcons();
@@ -2820,6 +3220,11 @@ export function initWin98() {
   window.openPaint = openPaint;
   window.openICQ = openICQ;
   window.openCalendar = openCalendar;
+  window.openBlogReader = openBlogReader;
+  window.openCreativeLab = openCreativeLab;
+  window.openResearch = openResearch;
+  window.openMAGI = openMAGI;
+  window.openICQProps = openICQProps;
   window.openDocuments = openDocuments;
   window.openCDrive = openCDrive;
   window.openAbout = openAbout;
