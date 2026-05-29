@@ -241,7 +241,7 @@ export function openIEProps() {
 
 /* ─── !e Browser ─── */
 export function openExclamationE(startUrl) {
-  const url = startUrl || 'https://blog.yuzhes.com';
+  const url = startUrl || 'https://neoblog-ten.vercel.app/';
   const id = 'excl-e';
 
   if (document.getElementById(`win-${id}`)) { bringToFront(id); return; }
@@ -307,10 +307,13 @@ export function openExclamationE(startUrl) {
   `, { width: 520, height: 380 });
 
   // --- Wire up after DOM is inserted ---
-  const history   = [url];
-  let histIdx     = 0;
-  let loadTimer   = null;
-  let currentUrl  = url;
+  const history  = [url];
+  let histIdx    = 0;
+  let loadTimer  = null;
+  let currentUrl = url;
+  // Navigation counter: 0 = not started, increments on each navigate()
+  // Load handler ignores events where _navId === 0 (pre-navigation about:blank)
+  let _navId     = 0;
 
   const frame   = document.getElementById('ieb-frame');
   const addr    = document.getElementById('ieb-addr');
@@ -331,7 +334,7 @@ export function openExclamationE(startUrl) {
     const errOpen = document.getElementById('ieb-err-open');
     const errBack = document.getElementById('ieb-err-back');
     if (errOpen) errOpen.onclick = () => window.open(currentUrl, '_blank');
-    if (errBack) errBack.onclick = () => { if (histIdx > 0) goTo(history[--histIdx], false); };
+    if (errBack) errBack.onclick = () => { if (histIdx > 0) navigate(history[--histIdx], false); };
   }
   function hideLoading() {
     if (loading) loading.style.display = 'none';
@@ -342,12 +345,10 @@ export function openExclamationE(startUrl) {
   function navigate(href, pushHistory = true) {
     let target = href.trim();
     if (!target) return;
-    // Auto-prepend https
     if (!/^https?:\/\//i.test(target)) target = 'https://' + target;
 
     currentUrl = target;
     if (addr) addr.value = target;
-
     showLoading('Connecting to ' + target + '…');
     clearTimeout(loadTimer);
 
@@ -357,52 +358,44 @@ export function openExclamationE(startUrl) {
       histIdx = history.length - 1;
     }
 
-    _pendingNav = true;
-    frame.src = target;
+    const myId = ++_navId;
+    frame.src  = target;
 
-    // Fallback: if load never fires (some blocks don't), show error after 6s
-    loadTimer = setTimeout(() => { _pendingNav = false; showError(); }, 6000);
+    // Fallback: if load never fires within 10s (server down / extreme slowness)
+    loadTimer = setTimeout(() => { if (_navId === myId) showError(); }, 10000);
   }
 
-  let _pendingNav = false;
-
   frame.addEventListener('load', () => {
-    if (!_pendingNav) return;   // ignore the initial about:blank load
-    _pendingNav = false;
+    // _navId === 0: no navigation started yet → this is the iframe's initial
+    // about:blank firing; ignore it entirely.
+    if (_navId === 0) return;
     clearTimeout(loadTimer);
 
+    const snapId = _navId; // capture in case of re-navigation during async recheck
+
     try {
-      // Accessible → same-origin (or about:blank after X-Frame-Options kill)
+      // contentDocument accessible → same-origin (or blocked → about:blank)
       const loc = frame.contentDocument?.location?.href ?? '';
-      if (!loc || loc === 'about:blank') {
-        showError();
-      } else {
-        hideLoading();
-        if (addr) addr.value = loc;
-      }
-    } catch (_) {
-      // contentDocument threw → cross-origin navigation.
-      // Could be (a) page loaded OK, or (b) X-Frame-Options blocked and
-      // Chrome left the frame in a cross-origin error state.
-      // Recheck after a tick: if it has become accessible + blank → blocked.
+      if (!loc || loc === 'about:blank') showError();
+      else { hideLoading(); if (addr) addr.value = loc; }
+    } catch {
+      // SecurityError → cross-origin → page loaded fine
+      // Recheck once after 400ms: if by then contentDocument is accessible and
+      // blank, the browser quietly killed the load (X-Frame-Options).
       setTimeout(() => {
+        if (_navId !== snapId) return; // navigated elsewhere, skip
         try {
           const loc2 = frame.contentDocument?.location?.href ?? '';
           if (!loc2 || loc2 === 'about:blank') showError();
           else hideLoading();
-        } catch {
-          // Still cross-origin → legitimately loaded
-          hideLoading();
-        }
-      }, 300);
+        } catch { hideLoading(); } // still cross-origin → success
+      }, 400);
     }
   });
 
-  // Go button / Enter key
+  // Toolbar controls
   document.getElementById('ieb-go')?.addEventListener('click', () => navigate(addr.value));
   addr?.addEventListener('keydown', e => { if (e.key === 'Enter') navigate(addr.value); });
-
-  // Back / Forward
   document.getElementById('ieb-back')?.addEventListener('click', () => {
     if (histIdx > 0) navigate(history[--histIdx], false);
   });
@@ -415,13 +408,11 @@ export function openExclamationE(startUrl) {
     setStatus('Stopped');
     if (loading) loading.style.display = 'none';
   });
-  document.getElementById('ieb-refresh')?.addEventListener('click', () => {
-    navigate(currentUrl, false);
-  });
+  document.getElementById('ieb-refresh')?.addEventListener('click', () => navigate(currentUrl, false));
 
-  // Delay first navigation by one tick so the iframe's initial about:blank
-  // load event fires BEFORE _pendingNav is set true — avoids spurious error page
-  setTimeout(() => navigate(url, false), 50);
+  // Start first navigation immediately — _navId is still 0 so the iframe's own
+  // initial about:blank load event (fires before this) is ignored.
+  navigate(url, false);
 }
 
 export function openMineHighScores() {
