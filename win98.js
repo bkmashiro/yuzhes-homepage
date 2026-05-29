@@ -872,27 +872,44 @@ function openExclamationE(startUrl) {
       histIdx = history.length - 1;
     }
 
+    _pendingNav = true;
     frame.src = target;
 
-    // Detect block: if after 8s load hasn't hidden the spinner, give up
-    loadTimer = setTimeout(() => showError(), 8000);
+    // Fallback: if load never fires (some blocks don't), show error after 6s
+    loadTimer = setTimeout(() => { _pendingNav = false; showError(); }, 6000);
   }
 
+  let _pendingNav = false;
+
   frame.addEventListener('load', () => {
+    if (!_pendingNav) return;   // ignore the initial about:blank load
+    _pendingNav = false;
     clearTimeout(loadTimer);
+
     try {
-      // Same-origin: check if it's about:blank (browser killed the load)
+      // Accessible → same-origin (or about:blank after X-Frame-Options kill)
       const loc = frame.contentDocument?.location?.href ?? '';
-      if (loc === 'about:blank' || loc === '') {
+      if (!loc || loc === 'about:blank') {
         showError();
       } else {
         hideLoading();
-        // Update address bar with final URL (may have redirected)
-        if (addr && loc && loc !== 'about:blank') addr.value = loc;
+        if (addr) addr.value = loc;
       }
     } catch (_) {
-      // Cross-origin → can't read location → page loaded successfully
-      hideLoading();
+      // contentDocument threw → cross-origin navigation.
+      // Could be (a) page loaded OK, or (b) X-Frame-Options blocked and
+      // Chrome left the frame in a cross-origin error state.
+      // Recheck after a tick: if it has become accessible + blank → blocked.
+      setTimeout(() => {
+        try {
+          const loc2 = frame.contentDocument?.location?.href ?? '';
+          if (!loc2 || loc2 === 'about:blank') showError();
+          else hideLoading();
+        } catch {
+          // Still cross-origin → legitimately loaded
+          hideLoading();
+        }
+      }, 300);
     }
   });
 
@@ -1332,7 +1349,12 @@ function openICQProps() {
 }
 
 /* ─── Blog RSS Reader ─── */
-const RSS_FEED = 'https://neoblog-ten.vercel.app/atom.xml';
+const RSS_FEED_URLS = [
+  'https://neoblog-ten.vercel.app/atom.xml',
+  // CORS proxy fallbacks if the primary is down
+  'https://corsproxy.io/?url=https://neoblog-ten.vercel.app/atom.xml',
+  'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://neoblog-ten.vercel.app/atom.xml'),
+];
 let _rssEntries = [];
 
 // Namespace-safe XML helper — getElementsByTagName ignores namespaces
@@ -1372,8 +1394,19 @@ async function loadRSS() {
   listEl.innerHTML = '<div style="padding:8px;color:#808080;font-size:10px">Loading…</div>';
 
   try {
-    const res  = await fetch(RSS_FEED);
-    const text = await res.text();
+    // Try each URL in sequence until one succeeds
+    let text = null;
+    let lastErr = null;
+    for (const feedUrl of RSS_FEED_URLS) {
+      try {
+        const res = await fetch(feedUrl, { signal: AbortSignal.timeout(6000) });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        text = await res.text();
+        break;
+      } catch (e) { lastErr = e; }
+    }
+    if (text === null) throw lastErr ?? new Error('All feed URLs failed');
+
     const doc  = new DOMParser().parseFromString(text, 'application/xml');
 
     if (doc.querySelector('parsererror')) throw new Error('XML parse error');
