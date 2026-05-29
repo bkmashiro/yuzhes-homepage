@@ -30,6 +30,7 @@ const ICONS = {
   folder:     `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='2' y='10' width='28' height='18' fill='%23ffd700' stroke='%23b8860b' stroke-width='1'/><rect x='2' y='8' width='10' height='4' fill='%23ffd700' stroke='%23b8860b' stroke-width='1'/></svg>`,
   notepad:    `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='5' y='2' width='22' height='28' fill='%23fff' stroke='%23000' stroke-width='1'/><rect x='8' y='8' width='16' height='1' fill='%23000'/><rect x='8' y='12' width='16' height='1' fill='%23000'/><rect x='8' y='16' width='12' height='1' fill='%23000'/><rect x='8' y='20' width='14' height='1' fill='%23000'/></svg>`,
   internet:   `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='13' fill='%234169e1' stroke='%23000' stroke-width='1'/><ellipse cx='16' cy='16' rx='6' ry='13' fill='none' stroke='%23fff' stroke-width='1'/><line x1='3' y1='16' x2='29' y2='16' stroke='%23fff' stroke-width='1'/><line x1='6' y1='9' x2='26' y2='9' stroke='%23fff' stroke-width='1'/><line x1='6' y1='23' x2='26' y2='23' stroke='%23fff' stroke-width='1'/></svg>`,
+  browser:    `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='2' y='4' width='28' height='24' rx='1' fill='%234169e1' stroke='%23000' stroke-width='1'/><rect x='2' y='4' width='28' height='7' fill='%23c0c0c0' stroke='%23000' stroke-width='1'/><rect x='8' y='6' width='16' height='3' rx='1' fill='%23fff' stroke='%23808080' stroke-width='0.5'/><text x='5' y='9.5' font-family='serif' font-size='6' fill='%23000080' font-style='italic' font-weight='bold'>!e</text><rect x='4' y='13' width='24' height='13' fill='%23fff'/><text x='7' y='21' font-family='serif' font-size='8' fill='%234169e1' font-style='italic'>!e</text><text x='14' y='21' font-family='monospace' font-size='5' fill='%23808080'>browser</text></svg>`,
   recycle:    `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='7' y='12' width='18' height='16' rx='1' fill='%23c0c0c0' stroke='%23808080' stroke-width='1'/><rect x='9' y='14' width='14' height='12' fill='%23fff'/><line x1='5' y1='12' x2='27' y2='12' stroke='%23808080' stroke-width='2'/><rect x='12' y='9' width='8' height='3' rx='1' fill='%23c0c0c0' stroke='%23808080' stroke-width='1'/><path d='M11 16 Q13 14 12 18' stroke='%23808080' stroke-width='1' fill='none'/><path d='M15 15 Q18 13 17 19' stroke='%23808080' stroke-width='1' fill='none'/><path d='M19 16 Q21 14 20 18' stroke='%23808080' stroke-width='1' fill='none'/></svg>`,
   winlogo:    `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='2' y='2' width='13' height='13' fill='%23ff0000'/><rect x='17' y='2' width='13' height='13' fill='%2300cc00'/><rect x='2' y='17' width='13' height='13' fill='%230000ff'/><rect x='17' y='17' width='13' height='13' fill='%23ffcc00'/></svg>`,
   mine:       `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='8' fill='%23333'/><line x1='16' y1='4' x2='16' y2='28' stroke='%23333' stroke-width='2'/><line x1='4' y1='16' x2='28' y2='16' stroke='%23333' stroke-width='2'/><line x1='8' y1='8' x2='24' y2='24' stroke='%23333' stroke-width='2'/><line x1='24' y1='8' x2='8' y2='24' stroke='%23333' stroke-width='2'/></svg>`,
@@ -244,6 +245,19 @@ const DESKTOP_ICONS = [
       { label: 'Open',         action: def.onOpen },
       { label: 'Today',        action: def.onOpen },
       '---',
+      { label: 'Properties' },
+    ],
+  },
+  {
+    id: 'excl-e',
+    label: '!e Browser',
+    icon: ICONS.browser,
+    onOpen: openExclamationE,
+    contextItems: def => [
+      { label: 'Open',             action: def.onOpen },
+      { label: 'New Window',       action: def.onOpen },
+      '---',
+      { label: 'Set Home Page…',   action: () => saySpeech('Home page updated! 🏠', 3000) },
       { label: 'Properties' },
     ],
   },
@@ -738,6 +752,173 @@ function openIEProps() {
       <p style="margin-top:8px;color:#808080;font-size:11px">Security: Medium (trust everyone)</p>
     </div>
   `, { width: 300, height: 240 });
+}
+
+/* ─── !e Browser ─── */
+function openExclamationE(startUrl) {
+  const url = startUrl || 'https://blog.yuzhes.com';
+  const id = 'excl-e';
+
+  if (document.getElementById(`win-${id}`)) { bringToFront(id); return; }
+
+  const btnStyle = `font-size:11px;font-family:inherit;padding:2px 7px;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;cursor:pointer;flex-shrink:0`;
+
+  openWindow(id, '!e — Browser', ICONS.browser, `
+    <div style="display:flex;flex-direction:column;height:100%;gap:0">
+
+      <!-- Toolbar -->
+      <div style="display:flex;align-items:center;gap:2px;padding:3px 4px;background:#c0c0c0;border-bottom:1px solid #808080;flex-shrink:0">
+        <button id="ieb-back"    title="Back"    style="${btnStyle}">◀</button>
+        <button id="ieb-fwd"     title="Forward" style="${btnStyle}">▶</button>
+        <button id="ieb-stop"    title="Stop"    style="${btnStyle}">✕</button>
+        <button id="ieb-refresh" title="Refresh" style="${btnStyle}">↻</button>
+        <div style="width:1px;height:16px;background:#808080;margin:0 3px;flex-shrink:0"></div>
+        <span style="font-size:10px;font-weight:bold;white-space:nowrap;flex-shrink:0">Address:</span>
+        <input id="ieb-addr" type="text" value="${url}"
+          style="flex:1;font-size:11px;font-family:monospace;border:inset 2px;padding:1px 4px;background:#fff;min-width:0"/>
+        <button id="ieb-go" style="${btnStyle} margin-left:2px">Go</button>
+      </div>
+
+      <!-- Viewport -->
+      <div style="position:relative;flex:1;overflow:hidden">
+        <div id="ieb-loading" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#fff;z-index:3;font-size:11px;gap:6px">
+          <div id="ieb-spinner" style="width:24px;height:24px;border:3px solid #c0c0c0;border-top-color:#000080;border-radius:50%;animation:spin 0.8s linear infinite"></div>
+          <span id="ieb-load-txt">Connecting…</span>
+        </div>
+
+        <div id="ieb-error" style="position:absolute;inset:0;display:none;background:#fff;padding:24px;z-index:3;font-size:12px">
+          <p style="font-size:18px;font-weight:bold;color:#000080;margin-bottom:8px">The page cannot be displayed</p>
+          <hr style="border:none;border-top:2px solid #000080;margin-bottom:12px"/>
+          <p style="margin-bottom:8px">The website you are trying to reach is not available, or has refused to be displayed inside another window.</p>
+          <p style="color:#808080;font-size:11px;margin-bottom:12px">This may be due to security restrictions on the remote server (X-Frame-Options: DENY).</p>
+          <p style="font-size:11px"><b>Try:</b></p>
+          <ul style="font-size:11px;margin-left:16px;margin-top:4px;list-style:disc">
+            <li>Clicking <b>Open in New Window</b> below to visit the site normally</li>
+            <li>Navigating to a different URL in the address bar</li>
+          </ul>
+          <div style="margin-top:14px;display:flex;gap:8px">
+            <button id="ieb-err-open" style="${btnStyle}">Open in New Window</button>
+            <button id="ieb-err-back" style="${btnStyle}">Back</button>
+          </div>
+        </div>
+
+        <iframe id="ieb-frame"
+          style="width:100%;height:100%;border:none;display:block;filter:sepia(0.18) contrast(1.06) saturate(0.72) brightness(0.94)"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation-by-user-activation">
+        </iframe>
+
+        <!-- Scanline + vignette overlay -->
+        <div style="position:absolute;inset:0;pointer-events:none;z-index:2;
+          background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.018) 3px,rgba(0,0,0,0.018) 4px),
+                     radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.08) 100%)">
+        </div>
+      </div>
+
+      <!-- Status bar -->
+      <div id="ieb-status" style="padding:2px 6px;font-size:10px;background:#c0c0c0;border-top:1px solid #808080;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+        Ready
+      </div>
+    </div>
+  `, { width: 520, height: 380 });
+
+  // --- Wire up after DOM is inserted ---
+  const history   = [url];
+  let histIdx     = 0;
+  let loadTimer   = null;
+  let currentUrl  = url;
+
+  const frame   = document.getElementById('ieb-frame');
+  const addr    = document.getElementById('ieb-addr');
+  const status  = document.getElementById('ieb-status');
+  const loading = document.getElementById('ieb-loading');
+  const errDiv  = document.getElementById('ieb-error');
+
+  function setStatus(txt) { if (status) status.textContent = txt; }
+  function showLoading(txt) {
+    if (loading) loading.style.display = 'flex';
+    if (errDiv)  errDiv.style.display  = 'none';
+    setStatus(txt || 'Connecting…');
+  }
+  function showError() {
+    if (loading) loading.style.display = 'none';
+    if (errDiv)  errDiv.style.display  = 'block';
+    setStatus(`Cannot display: ${currentUrl}`);
+    const errOpen = document.getElementById('ieb-err-open');
+    const errBack = document.getElementById('ieb-err-back');
+    if (errOpen) errOpen.onclick = () => window.open(currentUrl, '_blank');
+    if (errBack) errBack.onclick = () => { if (histIdx > 0) goTo(history[--histIdx], false); };
+  }
+  function hideLoading() {
+    if (loading) loading.style.display = 'none';
+    if (errDiv)  errDiv.style.display  = 'none';
+    setStatus('Done');
+  }
+
+  function navigate(href, pushHistory = true) {
+    let target = href.trim();
+    if (!target) return;
+    // Auto-prepend https
+    if (!/^https?:\/\//i.test(target)) target = 'https://' + target;
+
+    currentUrl = target;
+    if (addr) addr.value = target;
+
+    showLoading('Connecting to ' + target + '…');
+    clearTimeout(loadTimer);
+
+    if (pushHistory) {
+      history.splice(histIdx + 1);
+      history.push(target);
+      histIdx = history.length - 1;
+    }
+
+    frame.src = target;
+
+    // Detect block: if after 8s load hasn't hidden the spinner, give up
+    loadTimer = setTimeout(() => showError(), 8000);
+  }
+
+  frame.addEventListener('load', () => {
+    clearTimeout(loadTimer);
+    try {
+      // Same-origin: check if it's about:blank (browser killed the load)
+      const loc = frame.contentDocument?.location?.href ?? '';
+      if (loc === 'about:blank' || loc === '') {
+        showError();
+      } else {
+        hideLoading();
+        // Update address bar with final URL (may have redirected)
+        if (addr && loc && loc !== 'about:blank') addr.value = loc;
+      }
+    } catch (_) {
+      // Cross-origin → can't read location → page loaded successfully
+      hideLoading();
+    }
+  });
+
+  // Go button / Enter key
+  document.getElementById('ieb-go')?.addEventListener('click', () => navigate(addr.value));
+  addr?.addEventListener('keydown', e => { if (e.key === 'Enter') navigate(addr.value); });
+
+  // Back / Forward
+  document.getElementById('ieb-back')?.addEventListener('click', () => {
+    if (histIdx > 0) navigate(history[--histIdx], false);
+  });
+  document.getElementById('ieb-fwd')?.addEventListener('click', () => {
+    if (histIdx < history.length - 1) navigate(history[++histIdx], false);
+  });
+  document.getElementById('ieb-stop')?.addEventListener('click', () => {
+    clearTimeout(loadTimer);
+    frame.src = 'about:blank';
+    setStatus('Stopped');
+    if (loading) loading.style.display = 'none';
+  });
+  document.getElementById('ieb-refresh')?.addEventListener('click', () => {
+    navigate(currentUrl, false);
+  });
+
+  // Initial load
+  navigate(url, false);
 }
 
 function openMineHighScores() {
@@ -1453,6 +1634,7 @@ function initStartMenu() {
       <div class="start-menu-item" id="sm-lab">🧪 Creative Lab</div>
       <div class="start-menu-item" id="sm-research">🔬 Research</div>
       <div class="start-menu-item" id="sm-magi">🔴 MAGI System</div>
+      <div class="start-menu-item" id="sm-browser">🌐 !e Browser</div>
       <div class="start-menu-separator"></div>
       <div class="start-menu-item" onclick="window.openShutdownDialog()">
         <img src="${ICONS.winlogo}" alt=""> Shut Down...
@@ -1474,6 +1656,7 @@ function initStartMenu() {
   menu.querySelector('#sm-lab')?.addEventListener('click', () => { menu.classList.remove('open'); openCreativeLab(); });
   menu.querySelector('#sm-research')?.addEventListener('click', () => { menu.classList.remove('open'); openResearch(); });
   menu.querySelector('#sm-magi')?.addEventListener('click', () => { menu.classList.remove('open'); openMAGI(); });
+  menu.querySelector('#sm-browser')?.addEventListener('click', () => { menu.classList.remove('open'); openExclamationE(); });
 }
 
 /* ─── Clock ─── */
@@ -3270,6 +3453,7 @@ export function initWin98() {
   window.openCreativeLab = openCreativeLab;
   window.openResearch = openResearch;
   window.openMAGI = openMAGI;
+  window.openExclamationE = openExclamationE;
   window.openICQProps = openICQProps;
   window.openDocuments = openDocuments;
   window.openCDrive = openCDrive;

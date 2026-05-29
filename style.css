@@ -683,3 +683,9 @@ html, body {
   pointer-events: none;
   max-width: 340px;
 }
+
+/* ─── !e browser spinner ─── */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
