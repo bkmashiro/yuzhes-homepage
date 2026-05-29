@@ -24,6 +24,7 @@ import {
   openDownloadRAM, spawnClippy, openY2K, openCalculator, openSnake,
   openTerminal, startMatrixRain, startStarfield, openMAGI,
   loadRSS,
+  openTetris, openPinball, openBonziBuddy, openTaskManager, openDialup, openRansomware,
 } from './win98-apps.js';
 
 /* ─── Desktop icon definitions ─── */
@@ -244,6 +245,63 @@ const DESKTOP_ICONS = [
       { label: 'Properties' },
     ],
   },
+  {
+    id: 'tetris',
+    label: 'Tetris',
+    icon: ICONS.mine,
+    onOpen: openTetris,
+    contextItems: def => [
+      { label: 'Open',       action: def.onOpen },
+      { label: 'High Scores', action: () => saySpeech('High score: 0. You can do better!', 3000) },
+      '---',
+      { label: 'Properties' },
+    ],
+  },
+  {
+    id: 'pinball',
+    label: 'Pinball',
+    icon: ICONS.mine,
+    onOpen: openPinball,
+    contextItems: def => [
+      { label: 'Open', action: def.onOpen },
+      '---',
+      { label: 'Properties' },
+    ],
+  },
+  {
+    id: 'bonzi',
+    label: 'Bonzi Buddy.exe',
+    icon: ICONS.winamp,
+    onOpen: openBonziBuddy,
+    contextItems: def => [
+      { label: 'Open',    action: def.onOpen },
+      { label: 'Dismiss', action: () => document.getElementById('bonzi-buddy')?.remove() },
+      '---',
+      { label: 'Properties' },
+    ],
+  },
+  {
+    id: 'dialup',
+    label: 'Dial-up Internet',
+    icon: ICONS.internet,
+    onOpen: openDialup,
+    contextItems: def => [
+      { label: 'Connect', action: def.onOpen },
+      '---',
+      { label: 'Properties' },
+    ],
+  },
+  {
+    id: 'ransomware',
+    label: 'RANSOMWARE.exe',
+    icon: ICONS.mine,
+    onOpen: openRansomware,
+    contextItems: def => [
+      { label: 'Open (if you dare)', action: def.onOpen },
+      '---',
+      { label: 'Properties' },
+    ],
+  },
 ];
 
 /* ─── Start menu ─── */
@@ -290,6 +348,13 @@ function initStartMenu() {
       <div class="start-menu-item" id="sm-magi">🔴 MAGI System</div>
       <div class="start-menu-item" id="sm-browser">🌐 !e Browser</div>
       <div class="start-menu-separator"></div>
+      <div class="start-menu-item" id="sm-tetris">🎮 Tetris</div>
+      <div class="start-menu-item" id="sm-pinball">🎱 Pinball</div>
+      <div class="start-menu-item" id="sm-bonzi">🦍 Bonzi Buddy</div>
+      <div class="start-menu-item" id="sm-taskmanager">🖥️ Task Manager</div>
+      <div class="start-menu-item" id="sm-dialup">📞 Dial-up Internet</div>
+      <div class="start-menu-item" id="sm-ransomware">💀 RANSOMWARE.exe</div>
+      <div class="start-menu-separator"></div>
       <div class="start-menu-item" onclick="window.openShutdownDialog()">
         <img src="${ICONS.winlogo}" alt=""> Shut Down...
       </div>
@@ -311,6 +376,12 @@ function initStartMenu() {
   menu.querySelector('#sm-research')?.addEventListener('click', () => { menu.classList.remove('open'); openResearch(); });
   menu.querySelector('#sm-magi')?.addEventListener('click', () => { menu.classList.remove('open'); openMAGI(); });
   menu.querySelector('#sm-browser')?.addEventListener('click', () => { menu.classList.remove('open'); openExclamationE(); });
+  menu.querySelector('#sm-tetris')?.addEventListener('click', () => { menu.classList.remove('open'); openTetris(); });
+  menu.querySelector('#sm-pinball')?.addEventListener('click', () => { menu.classList.remove('open'); openPinball(); });
+  menu.querySelector('#sm-bonzi')?.addEventListener('click', () => { menu.classList.remove('open'); openBonziBuddy(); });
+  menu.querySelector('#sm-taskmanager')?.addEventListener('click', () => { menu.classList.remove('open'); openTaskManager(); });
+  menu.querySelector('#sm-dialup')?.addEventListener('click', () => { menu.classList.remove('open'); openDialup(); });
+  menu.querySelector('#sm-ransomware')?.addEventListener('click', () => { menu.classList.remove('open'); openRansomware(); });
 }
 
 /* ─── Clock ─── */
@@ -1068,4 +1139,20 @@ export function initWin98() {
       if (e.key.length===1||e.key==='Backspace'||e.key==='Enter'||e.key==='Space') playTypingClick();
     }
   }, true);
+
+  // Ctrl+Alt+Delete → Task Manager
+  document.addEventListener('keydown', e => {
+    if (e.ctrlKey && e.altKey && e.key === 'Delete') {
+      e.preventDefault();
+      openTaskManager();
+    }
+  });
+
+  // Expose new functions for inline handlers
+  window.openTetris = openTetris;
+  window.openPinball = openPinball;
+  window.openBonziBuddy = openBonziBuddy;
+  window.openTaskManager = openTaskManager;
+  window.openDialup = openDialup;
+  window.openRansomware = openRansomware;
 }

@@ -453,7 +453,7 @@ export function openGuestbook() {
 }
 
 /* ─── Winamp ─── */
-const WINAMP_PLAYLIST = [
+const WINAMP_PLAYLIST_DEFAULT = [
   { title: 'Yoko Takahashi — A Cruel Angel\'s Thesis',   dur: '1:35' },
   { title: 'Joe Hisaishi — One Summer\'s Day',           dur: '3:22' },
   { title: 'Nujabes — Feather',                          dur: '5:07' },
@@ -461,48 +461,78 @@ const WINAMP_PLAYLIST = [
   { title: 'ClariS — Connect',                           dur: '4:10' },
   { title: 'Susumu Hirasawa — Forces',                   dur: '4:33' },
 ];
+// Mutable runtime playlist (may include real files)
+let WINAMP_PLAYLIST = WINAMP_PLAYLIST_DEFAULT.map(t => ({ ...t }));
+
 let _winampTrack = 0;
 let _winampPlaying = false;
 let _winampTimer = null;
 let _winampSec = 0;
 
+// Real audio state
+let _waAudio = null;       // HTMLAudioElement for real playback
+let _waAudioCtx = null;    // AudioContext for visualizer
+let _waAnalyser = null;
+let _waSource = null;
+let _waVisRaf = null;
+
 export function openWinamp() {
   _winampPlaying = false;
   clearInterval(_winampTimer);
 
+  // Stop real audio if playing
+  if (_waAudio) { _waAudio.pause(); }
+
+  function fmtTime(sec) {
+    const m = Math.floor(sec / 60), s = Math.floor(sec % 60);
+    return `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+  }
+
   function trackHTML() {
-    const t = WINAMP_PLAYLIST[_winampTrack];
-    const mins = Math.floor(_winampSec / 60).toString().padStart(2, '0');
-    const secs = (_winampSec % 60).toString().padStart(2, '0');
-    return `<span id="wa-time" style="font-family:monospace;color:#00ff00">${mins}:${secs}</span>
-            <span id="wa-title" style="color:#00cc00;font-size:10px;margin-left:4px;overflow:hidden;white-space:nowrap;max-width:160px;display:inline-block;text-overflow:ellipsis">${t.title}</span>`;
+    const t = WINAMP_PLAYLIST[_winampTrack] || { title: '---', dur: '0:00' };
+    return `<span id="wa-time" style="font-family:monospace;color:#00ff00">${fmtTime(_winampSec)}</span>
+            <span id="wa-title" style="color:#00cc00;font-size:10px;margin-left:4px;overflow:hidden;white-space:nowrap;max-width:140px;display:inline-block;text-overflow:ellipsis">${t.title}</span>`;
+  }
+
+  function buildPlaylistHTML() {
+    return WINAMP_PLAYLIST.map((t, i) => `
+      <div class="wa-row" data-idx="${i}" style="padding:2px 8px;display:flex;justify-content:space-between;cursor:pointer;font-size:10px;${i === _winampTrack ? 'background:#004400;color:#0f0' : 'color:#009900'}">
+        <span>${(i+1).toString().padStart(2,'0')}. ${t.title}</span>
+        <span style="color:#007700">${t.dur || ''}</span>
+      </div>`).join('');
   }
 
   openWindow('winamp', 'Winamp', ICONS.winamp, `
     <div style="background:#222;color:#0f0;font-family:monospace;font-size:11px;display:flex;flex-direction:column;height:100%;box-sizing:border-box">
       <div style="background:#111;padding:6px 8px;border-bottom:1px solid #00ff0044">
-        <div style="font-size:9px;color:#00aa00;margin-bottom:2px">▶ NOW PLAYING</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
+          <span style="font-size:9px;color:#00aa00">▶ NOW PLAYING</span>
+          <div style="display:flex;align-items:center;gap:4px">
+            <label style="font-size:9px;color:#00aa00">VOL</label>
+            <input id="wa-vol" type="range" min="0" max="1" step="0.05" value="0.8" style="width:60px;height:12px;cursor:pointer;accent-color:#00ff00">
+          </div>
+        </div>
         <div id="wa-info" style="display:flex;align-items:center;gap:4px">${trackHTML()}</div>
         <div style="margin-top:4px;background:#111;border:1px solid #00ff0033;height:6px;border-radius:2px;overflow:hidden">
-          <div id="wa-progress" style="height:100%;width:0%;background:#00ff00;transition:width 0.5s linear"></div>
+          <div id="wa-progress" style="height:100%;width:0%;background:#00ff00;transition:width 0.3s linear"></div>
         </div>
+        <!-- Visualizer canvas -->
+        <canvas id="wa-vis" width="260" height="30" style="display:block;margin-top:4px;background:#000;width:100%;height:30px"></canvas>
       </div>
-      <div style="display:flex;justify-content:center;gap:4px;padding:6px 4px;border-bottom:1px solid #00ff0022">
-        <button id="wa-prev" style="background:#333;color:#0f0;border:1px solid #555;padding:2px 8px;cursor:pointer;font-size:11px;font-family:monospace">⏮</button>
-        <button id="wa-play" style="background:#333;color:#0f0;border:1px solid #555;padding:2px 8px;cursor:pointer;font-size:11px;font-family:monospace">▶</button>
-        <button id="wa-pause" style="background:#333;color:#0f0;border:1px solid #555;padding:2px 8px;cursor:pointer;font-size:11px;font-family:monospace">⏸</button>
-        <button id="wa-stop" style="background:#333;color:#0f0;border:1px solid #555;padding:2px 8px;cursor:pointer;font-size:11px;font-family:monospace">⏹</button>
-        <button id="wa-next" style="background:#333;color:#0f0;border:1px solid #555;padding:2px 8px;cursor:pointer;font-size:11px;font-family:monospace">⏭</button>
+      <div style="display:flex;justify-content:center;gap:4px;padding:4px;border-bottom:1px solid #00ff0022;align-items:center">
+        <button id="wa-prev"  style="background:#333;color:#0f0;border:1px solid #555;padding:2px 7px;cursor:pointer;font-size:11px;font-family:monospace">⏮</button>
+        <button id="wa-play"  style="background:#333;color:#0f0;border:1px solid #555;padding:2px 7px;cursor:pointer;font-size:11px;font-family:monospace">▶</button>
+        <button id="wa-pause" style="background:#333;color:#0f0;border:1px solid #555;padding:2px 7px;cursor:pointer;font-size:11px;font-family:monospace">⏸</button>
+        <button id="wa-stop"  style="background:#333;color:#0f0;border:1px solid #555;padding:2px 7px;cursor:pointer;font-size:11px;font-family:monospace">⏹</button>
+        <button id="wa-next"  style="background:#333;color:#0f0;border:1px solid #555;padding:2px 7px;cursor:pointer;font-size:11px;font-family:monospace">⏭</button>
+        <button id="wa-eject" style="background:#333;color:#0f0;border:1px solid #555;padding:2px 7px;cursor:pointer;font-size:11px;font-family:monospace" title="Open files">📂</button>
+        <input id="wa-fileinput" type="file" accept="audio/*" multiple style="display:none">
       </div>
-      <div style="flex:1;overflow-y:auto;padding:4px 0">
-        ${WINAMP_PLAYLIST.map((t, i) => `
-          <div class="wa-row" data-idx="${i}" style="padding:2px 8px;display:flex;justify-content:space-between;cursor:pointer;font-size:10px;${i === _winampTrack ? 'background:#004400;color:#0f0' : 'color:#009900'}">
-            <span>${(i+1).toString().padStart(2,'0')}. ${t.title}</span>
-            <span style="color:#007700">${t.dur}</span>
-          </div>`).join('')}
+      <div id="wa-playlist" style="flex:1;overflow-y:auto;padding:4px 0">
+        ${buildPlaylistHTML()}
       </div>
     </div>
-  `, { width: 280, height: 260 });
+  `, { width: 300, height: 320 });
 
   function refreshDisplay() {
     const info = document.getElementById('wa-info');
@@ -515,50 +545,214 @@ export function openWinamp() {
     });
   }
 
-  function startPlaying() {
+  function refreshPlaylist() {
+    const pl = document.getElementById('wa-playlist');
+    if (pl) pl.innerHTML = buildPlaylistHTML();
+    // Re-attach dblclick
+    document.querySelectorAll('.wa-row').forEach(r => {
+      r.addEventListener('dblclick', () => {
+        _winampTrack = parseInt(r.dataset.idx); _winampSec = 0;
+        playTrack();
+      });
+    });
+  }
+
+  // ── Real audio helpers ──
+  function stopRealAudio() {
+    if (_waAudio) { _waAudio.pause(); _waAudio.src = ''; _waAudio = null; }
+    if (_waVisRaf) { cancelAnimationFrame(_waVisRaf); _waVisRaf = null; }
+  }
+
+  function setupVisualizer(audio) {
+    try {
+      if (!_waAudioCtx) _waAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (_waSource) { try { _waSource.disconnect(); } catch(e){} }
+      _waSource = _waAudioCtx.createMediaElementSource(audio);
+      _waAnalyser = _waAudioCtx.createAnalyser();
+      _waAnalyser.fftSize = 64;
+      _waSource.connect(_waAnalyser);
+      _waAnalyser.connect(_waAudioCtx.destination);
+    } catch(e) { /* visualizer not available */ }
+  }
+
+  function drawVisualizer() {
+    const visCanvas = document.getElementById('wa-vis');
+    if (!visCanvas || !document.getElementById('win-winamp')) { _waVisRaf = null; return; }
+    _waVisRaf = requestAnimationFrame(drawVisualizer);
+    const vc = visCanvas.getContext('2d');
+    vc.fillStyle = '#000';
+    vc.fillRect(0, 0, visCanvas.width, visCanvas.height);
+
+    if (_waAnalyser) {
+      const bufLen = _waAnalyser.frequencyBinCount;
+      const data = new Uint8Array(bufLen);
+      _waAnalyser.getByteFrequencyData(data);
+      const barW = visCanvas.width / bufLen;
+      for (let i = 0; i < bufLen; i++) {
+        const h = (data[i] / 255) * visCanvas.height;
+        const hue = (i / bufLen) * 120; // green to yellow
+        vc.fillStyle = `hsl(${hue}, 100%, 50%)`;
+        vc.fillRect(i * barW, visCanvas.height - h, barW - 1, h);
+      }
+    } else {
+      // Fake visualizer bars when no real audio
+      const bars = 16;
+      const barW = visCanvas.width / bars;
+      for (let i = 0; i < bars; i++) {
+        const h = Math.random() * visCanvas.height * (_winampPlaying ? 0.7 : 0.1);
+        vc.fillStyle = `hsl(${i * 8}, 100%, 50%)`;
+        vc.fillRect(i * barW, visCanvas.height - h, barW - 1, h);
+      }
+    }
+  }
+
+  function playRealAudio(track) {
+    stopRealAudio();
+    if (!track.blob) return false;
+    const audio = new Audio();
+    audio.src = URL.createObjectURL(track.blob);
+    audio.volume = parseFloat(document.getElementById('wa-vol')?.value || '0.8');
+    _waAudio = audio;
+    setupVisualizer(audio);
+    audio.play().catch(() => {});
     _winampPlaying = true;
+
+    audio.addEventListener('timeupdate', () => {
+      if (!document.getElementById('win-winamp')) return;
+      _winampSec = audio.currentTime;
+      const timeEl = document.getElementById('wa-time');
+      if (timeEl) timeEl.textContent = fmtTime(_winampSec);
+      const prog = document.getElementById('wa-progress');
+      if (prog && audio.duration) prog.style.width = `${(audio.currentTime / audio.duration) * 100}%`;
+    });
+    audio.addEventListener('ended', () => {
+      _winampTrack = (_winampTrack + 1) % WINAMP_PLAYLIST.length;
+      _winampSec = 0;
+      playTrack();
+    });
+    return true;
+  }
+
+  function startFakePlaying() {
     clearInterval(_winampTimer);
-    const totalSec = WINAMP_PLAYLIST[_winampTrack].dur.split(':').reduce((a, v) => a*60 + parseInt(v), 0);
+    _winampPlaying = true;
+    const track = WINAMP_PLAYLIST[_winampTrack];
+    const totalSec = (track.dur || '3:00').split(':').reduce((a, v) => a*60 + parseInt(v), 0);
     _winampTimer = setInterval(() => {
       if (!document.getElementById('win-winamp')) { clearInterval(_winampTimer); return; }
       _winampSec++;
-      if (_winampSec >= totalSec) { _winampSec = 0; _winampTrack = (_winampTrack + 1) % WINAMP_PLAYLIST.length; refreshDisplay(); }
+      if (_winampSec >= totalSec) {
+        _winampSec = 0;
+        _winampTrack = (_winampTrack + 1) % WINAMP_PLAYLIST.length;
+        refreshDisplay();
+      }
       const prog = document.getElementById('wa-progress');
       if (prog) prog.style.width = `${(_winampSec / totalSec) * 100}%`;
       const timeEl = document.getElementById('wa-time');
-      if (timeEl) timeEl.textContent = `${Math.floor(_winampSec/60).toString().padStart(2,'0')}:${(_winampSec%60).toString().padStart(2,'0')}`;
+      if (timeEl) timeEl.textContent = fmtTime(_winampSec);
     }, 1000);
   }
 
+  function playTrack() {
+    clearInterval(_winampTimer);
+    const track = WINAMP_PLAYLIST[_winampTrack];
+    if (!track) return;
+    const usedReal = playRealAudio(track);
+    if (!usedReal) startFakePlaying();
+    refreshDisplay();
+  }
+
+  // ── Button handlers ──
   document.getElementById('wa-play')?.addEventListener('click', () => {
-    _winampSec = 0; startPlaying(); refreshDisplay();
+    if (_waAudio) {
+      _waAudio.play().catch(()=>{});
+      _winampPlaying = true;
+    } else {
+      _winampSec = 0; playTrack();
+    }
+    refreshDisplay();
     saySpeech('🎵 Winamp, it really whips the llama\'s ass!', 4000, true);
   });
+
   document.getElementById('wa-pause')?.addEventListener('click', () => {
-    _winampPlaying = !_winampPlaying;
-    if (_winampPlaying) startPlaying(); else clearInterval(_winampTimer);
+    if (_waAudio) {
+      if (_waAudio.paused) { _waAudio.play().catch(()=>{}); _winampPlaying = true; }
+      else { _waAudio.pause(); _winampPlaying = false; }
+    } else {
+      _winampPlaying = !_winampPlaying;
+      if (_winampPlaying) startFakePlaying(); else clearInterval(_winampTimer);
+    }
   });
+
   document.getElementById('wa-stop')?.addEventListener('click', () => {
-    clearInterval(_winampTimer); _winampPlaying = false; _winampSec = 0;
+    stopRealAudio();
+    clearInterval(_winampTimer);
+    _winampPlaying = false; _winampSec = 0;
     const prog = document.getElementById('wa-progress');
     if (prog) prog.style.width = '0%';
     const timeEl = document.getElementById('wa-time');
     if (timeEl) timeEl.textContent = '00:00';
   });
+
   document.getElementById('wa-prev')?.addEventListener('click', () => {
     _winampTrack = (_winampTrack - 1 + WINAMP_PLAYLIST.length) % WINAMP_PLAYLIST.length;
-    _winampSec = 0; if (_winampPlaying) startPlaying(); refreshDisplay();
+    _winampSec = 0;
+    if (_winampPlaying) playTrack(); else refreshDisplay();
   });
+
   document.getElementById('wa-next')?.addEventListener('click', () => {
     _winampTrack = (_winampTrack + 1) % WINAMP_PLAYLIST.length;
-    _winampSec = 0; if (_winampPlaying) startPlaying(); refreshDisplay();
+    _winampSec = 0;
+    if (_winampPlaying) playTrack(); else refreshDisplay();
   });
+
+  // Volume
+  document.getElementById('wa-vol')?.addEventListener('input', e => {
+    if (_waAudio) _waAudio.volume = parseFloat(e.target.value);
+  });
+
+  // Eject / open files
+  document.getElementById('wa-eject')?.addEventListener('click', () => {
+    document.getElementById('wa-fileinput')?.click();
+  });
+
+  document.getElementById('wa-fileinput')?.addEventListener('change', e => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    // Add real files to playlist
+    const newTracks = files.map(f => {
+      const name = f.name.replace(/\.[^/.]+$/, ''); // strip extension
+      return { title: name, dur: '', blob: f };
+    });
+    WINAMP_PLAYLIST = [...WINAMP_PLAYLIST, ...newTracks];
+    _winampTrack = WINAMP_PLAYLIST.length - newTracks.length; // jump to first new
+    _winampSec = 0;
+    refreshPlaylist();
+    playTrack();
+    saySpeech(`📂 Loaded ${files.length} track(s) into Winamp!`, 3000, true);
+  });
+
+  // Playlist row dblclick
   document.querySelectorAll('.wa-row').forEach(r => {
     r.addEventListener('dblclick', () => {
       _winampTrack = parseInt(r.dataset.idx); _winampSec = 0;
-      startPlaying(); refreshDisplay();
+      playTrack();
     });
   });
+
+  // Start visualizer loop
+  _waVisRaf = requestAnimationFrame(drawVisualizer);
+
+  // Cleanup on window close
+  const waObs = new MutationObserver(() => {
+    if (!document.getElementById('win-winamp')) {
+      stopRealAudio();
+      clearInterval(_winampTimer);
+      if (_waVisRaf) { cancelAnimationFrame(_waVisRaf); _waVisRaf = null; }
+      waObs.disconnect();
+    }
+  });
+  waObs.observe(document.getElementById('win98-desktop'), { childList: true, subtree: true });
 }
 
 /* ─── Paint ─── */
@@ -2036,5 +2230,1026 @@ export function openMAGI(question) {
         }
       }, 120);
     }, v.delay);
+  });
+}
+
+/* ─── Tetris ─── */
+export function openTetris() {
+  openWindow('tetris', 'Tetris', ICONS.mine, `
+    <div style="display:flex;flex-direction:column;align-items:center;background:#1a1a2e;height:100%;box-sizing:border-box;padding:6px;gap:4px">
+      <div style="display:flex;gap:8px;align-items:flex-start">
+        <canvas id="tetris-canvas" width="200" height="400" style="border:2px solid #444;background:#000;image-rendering:pixelated"></canvas>
+        <div style="color:#0ff;font-family:monospace;font-size:10px;min-width:70px">
+          <div style="margin-bottom:6px"><b style="color:#fff">SCORE</b><br><span id="tet-score">0</span></div>
+          <div style="margin-bottom:6px"><b style="color:#fff">LEVEL</b><br><span id="tet-level">1</span></div>
+          <div style="margin-bottom:6px"><b style="color:#fff">LINES</b><br><span id="tet-lines">0</span></div>
+          <div style="margin-top:8px;font-size:9px;color:#888">
+            ← → Move<br>↑ Rotate<br>↓ Soft drop<br>Space Hard drop<br>P Pause
+          </div>
+        </div>
+      </div>
+      <div id="tet-msg" style="color:#ff0;font-family:monospace;font-size:11px;height:16px"></div>
+    </div>
+  `, { width: 310, height: 460 });
+
+  const canvas = document.getElementById('tetris-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+
+  const COLS = 10, ROWS = 20, CELL = 20;
+  const COLORS = ['','#00f0f0','#0000f0','#f0a000','#f0f000','#00f000','#a000f0','#f00000'];
+  const SHAPES = [
+    [],
+    [[1,1,1,1]],                          // I
+    [[2,0,0],[2,2,2]],                    // J
+    [[0,0,3],[3,3,3]],                    // L
+    [[4,4],[4,4]],                        // O
+    [[0,5,5],[5,5,0]],                    // S
+    [[0,6,0],[6,6,6]],                    // T
+    [[7,7,0],[0,7,7]],                    // Z
+  ];
+
+  let board, piece, pieceX, pieceY, score, lines, level, paused, dead, rafId, lastTick;
+
+  function newBoard() {
+    return Array.from({length:ROWS}, () => new Array(COLS).fill(0));
+  }
+
+  function randomPiece() {
+    const id = 1 + Math.floor(Math.random() * 7);
+    return { id, shape: SHAPES[id].map(r => [...r]) };
+  }
+
+  function rotate(shape) {
+    const R = shape.length, C = shape[0].length;
+    const out = Array.from({length:C}, () => new Array(R).fill(0));
+    for (let r = 0; r < R; r++)
+      for (let c = 0; c < C; c++)
+        out[c][R-1-r] = shape[r][c];
+    return out;
+  }
+
+  function collides(sh, px, py) {
+    for (let r = 0; r < sh.length; r++)
+      for (let c = 0; c < sh[r].length; c++) {
+        if (!sh[r][c]) continue;
+        const nx = px + c, ny = py + r;
+        if (nx < 0 || nx >= COLS || ny >= ROWS) return true;
+        if (ny >= 0 && board[ny][nx]) return true;
+      }
+    return false;
+  }
+
+  function lock() {
+    for (let r = 0; r < piece.shape.length; r++)
+      for (let c = 0; c < piece.shape[r].length; c++) {
+        if (!piece.shape[r][c]) continue;
+        const ny = pieceY + r;
+        if (ny < 0) { endGame(); return; }
+        board[ny][pieceX + c] = piece.id;
+      }
+    clearLines();
+    spawn();
+  }
+
+  function clearLines() {
+    let cleared = 0;
+    for (let r = ROWS - 1; r >= 0; r--) {
+      if (board[r].every(c => c !== 0)) {
+        board.splice(r, 1);
+        board.unshift(new Array(COLS).fill(0));
+        cleared++;
+        r++;
+      }
+    }
+    if (cleared > 0) {
+      const pts = [0, 100, 300, 500, 800][Math.min(cleared, 4)] * level;
+      score += pts;
+      lines += cleared;
+      level = Math.floor(lines / 10) + 1;
+      document.getElementById('tet-score').textContent = score;
+      document.getElementById('tet-level').textContent = level;
+      document.getElementById('tet-lines').textContent = lines;
+    }
+  }
+
+  function spawn() {
+    piece = randomPiece();
+    pieceX = Math.floor(COLS / 2) - Math.floor(piece.shape[0].length / 2);
+    pieceY = -1;
+    if (collides(piece.shape, pieceX, pieceY)) { endGame(); }
+  }
+
+  function endGame() {
+    dead = true;
+    const msg = document.getElementById('tet-msg');
+    if (msg) msg.textContent = `GAME OVER — Score: ${score}`;
+  }
+
+  function ghostY() {
+    let gy = pieceY;
+    while (!collides(piece.shape, pieceX, gy + 1)) gy++;
+    return gy;
+  }
+
+  function draw() {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Draw board
+    for (let r = 0; r < ROWS; r++)
+      for (let c = 0; c < COLS; c++) {
+        if (!board[r][c]) continue;
+        ctx.fillStyle = COLORS[board[r][c]];
+        ctx.fillRect(c*CELL+1, r*CELL+1, CELL-2, CELL-2);
+      }
+
+    if (!dead && piece) {
+      // Ghost piece
+      const gy = ghostY();
+      ctx.globalAlpha = 0.2;
+      for (let r = 0; r < piece.shape.length; r++)
+        for (let c = 0; c < piece.shape[r].length; c++) {
+          if (!piece.shape[r][c]) continue;
+          ctx.fillStyle = COLORS[piece.id];
+          ctx.fillRect((pieceX+c)*CELL+1, (gy+r)*CELL+1, CELL-2, CELL-2);
+        }
+      ctx.globalAlpha = 1;
+
+      // Active piece
+      for (let r = 0; r < piece.shape.length; r++)
+        for (let c = 0; c < piece.shape[r].length; c++) {
+          if (!piece.shape[r][c]) continue;
+          ctx.fillStyle = COLORS[piece.id];
+          ctx.fillRect((pieceX+c)*CELL+1, (pieceY+r)*CELL+1, CELL-2, CELL-2);
+        }
+    }
+
+    if (dead) {
+      ctx.fillStyle = 'rgba(0,0,0,0.65)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#f00';
+      ctx.font = 'bold 16px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('GAME OVER', canvas.width/2, canvas.height/2 - 12);
+      ctx.fillStyle = '#fff';
+      ctx.font = '12px monospace';
+      ctx.fillText(`Score: ${score}`, canvas.width/2, canvas.height/2 + 8);
+      ctx.fillText('Press Space to restart', canvas.width/2, canvas.height/2 + 26);
+    }
+
+    if (paused && !dead) {
+      ctx.fillStyle = 'rgba(0,0,0,0.55)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#ff0';
+      ctx.font = 'bold 14px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('PAUSED', canvas.width/2, canvas.height/2);
+    }
+  }
+
+  function reset() {
+    board = newBoard(); score = 0; lines = 0; level = 1; dead = false; paused = false;
+    const msg = document.getElementById('tet-msg');
+    if (msg) msg.textContent = '';
+    document.getElementById('tet-score').textContent = '0';
+    document.getElementById('tet-level').textContent = '1';
+    document.getElementById('tet-lines').textContent = '0';
+    spawn();
+  }
+
+  function gameLoop(ts) {
+    rafId = requestAnimationFrame(gameLoop);
+    draw();
+    if (dead || paused) return;
+    const speed = Math.max(100, 800 - (level - 1) * 70);
+    if (ts - lastTick >= speed) {
+      lastTick = ts;
+      if (!collides(piece.shape, pieceX, pieceY + 1)) {
+        pieceY++;
+      } else {
+        lock();
+      }
+    }
+  }
+
+  const tetKeyHandler = e => {
+    if (!document.getElementById('win-tetris')) { document.removeEventListener('keydown', tetKeyHandler); return; }
+    if (dead) { if (e.key === ' ') { e.preventDefault(); reset(); } return; }
+    if (e.key === 'p' || e.key === 'P') { paused = !paused; return; }
+    if (paused) return;
+    if (e.key === 'ArrowLeft') { if (!collides(piece.shape, pieceX-1, pieceY)) pieceX--; }
+    else if (e.key === 'ArrowRight') { if (!collides(piece.shape, pieceX+1, pieceY)) pieceX++; }
+    else if (e.key === 'ArrowDown') { if (!collides(piece.shape, pieceX, pieceY+1)) pieceY++; else lock(); }
+    else if (e.key === 'ArrowUp') {
+      const rot = rotate(piece.shape);
+      if (!collides(rot, pieceX, pieceY)) piece.shape = rot;
+    }
+    else if (e.key === ' ') {
+      pieceY = ghostY();
+      lock();
+      e.preventDefault();
+    }
+  };
+  document.addEventListener('keydown', tetKeyHandler);
+
+  const tetObs = new MutationObserver(() => {
+    if (!document.getElementById('win-tetris')) {
+      cancelAnimationFrame(rafId);
+      document.removeEventListener('keydown', tetKeyHandler);
+      tetObs.disconnect();
+    }
+  });
+  tetObs.observe(document.getElementById('win98-desktop'), { childList: true, subtree: true });
+
+  reset();
+  lastTick = 0;
+  rafId = requestAnimationFrame(gameLoop);
+}
+
+/* ─── Pinball ─── */
+export function openPinball() {
+  openWindow('pinball', 'Pinball', ICONS.mine, `
+    <div style="display:flex;flex-direction:column;align-items:center;background:#1a0030;height:100%;box-sizing:border-box;padding:4px;gap:2px">
+      <div style="color:#ff0;font-family:monospace;font-size:10px;width:300px;display:flex;justify-content:space-between">
+        <span>SCORE: <b id="pb-score">0</b></span>
+        <span>LIVES: <b id="pb-lives">❤️❤️❤️</b></span>
+        <span id="pb-msg" style="color:#0ff"></span>
+      </div>
+      <canvas id="pinball-canvas" width="300" height="460" style="border:2px solid #440066;background:#0a0018;image-rendering:pixelated"></canvas>
+      <div style="color:#888;font-family:monospace;font-size:9px">Z=Left Flipper | /=Right Flipper | Space=Launch</div>
+    </div>
+  `, { width: 318, height: 540 });
+
+  const canvas = document.getElementById('pinball-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = 300, H = 460;
+
+  // Ball
+  let ball = { x: 270, y: 380, vx: 0, vy: 0, r: 8 };
+  let ballInPlay = false;
+  let plungerCharge = 0, plungerCharging = false;
+  let score = 0, lives = 3, rafId;
+
+  // Flippers
+  const flipperLen = 55;
+  const leftFlipper = { cx: 70, cy: 420, angle: 30, active: false };
+  const rightFlipper = { cx: 230, cy: 420, angle: 150, active: false };
+
+  // Bumpers
+  const bumpers = [
+    { x: 100, y: 140, r: 20, flash: 0 },
+    { x: 200, y: 120, r: 20, flash: 0 },
+    { x: 150, y: 200, r: 20, flash: 0 },
+  ];
+
+  function flipperEndpoint(f) {
+    const a = f.angle * Math.PI / 180;
+    return { x: f.cx + Math.cos(a) * flipperLen, y: f.cy + Math.sin(a) * flipperLen };
+  }
+
+  function draw() {
+    ctx.fillStyle = '#0a0018';
+    ctx.fillRect(0, 0, W, H);
+
+    // Walls
+    ctx.strokeStyle = '#660099';
+    ctx.lineWidth = 4;
+    ctx.strokeRect(2, 2, W-4, H-4);
+
+    // Plunger lane
+    ctx.strokeStyle = '#440066';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(250, 300); ctx.lineTo(250, H-40); ctx.stroke();
+
+    // Bumpers
+    bumpers.forEach(b => {
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.r, 0, Math.PI*2);
+      ctx.fillStyle = b.flash > 0 ? '#ffff00' : '#cc00ff';
+      ctx.fill();
+      ctx.strokeStyle = '#ff00ff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      if (b.flash > 0) b.flash--;
+    });
+
+    // Flippers
+    [leftFlipper, rightFlipper].forEach(f => {
+      const end = flipperEndpoint(f);
+      ctx.beginPath();
+      ctx.moveTo(f.cx, f.cy);
+      ctx.lineTo(end.x, end.y);
+      ctx.strokeStyle = f.active ? '#00ffff' : '#0088cc';
+      ctx.lineWidth = 8;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+    });
+
+    // Ball
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2);
+    const grad = ctx.createRadialGradient(ball.x-2, ball.y-2, 1, ball.x, ball.y, ball.r);
+    grad.addColorStop(0, '#fff');
+    grad.addColorStop(1, '#aaa');
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // Plunger charge bar
+    if (plungerCharging) {
+      ctx.fillStyle = '#ffff00';
+      ctx.fillRect(254, H-40 - plungerCharge * 1.2, 8, plungerCharge * 1.2);
+    }
+
+    if (!ballInPlay && !plungerCharging) {
+      ctx.fillStyle = '#ff0';
+      ctx.font = '10px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('Hold SPACE to charge', W/2, H/2);
+      ctx.fillText('Release to launch', W/2, H/2 + 14);
+      ctx.textAlign = 'left';
+    }
+  }
+
+  function reflectOffFlipper(f) {
+    const end = flipperEndpoint(f);
+    const a = f.angle * Math.PI / 180;
+    const nx = -Math.sin(a), ny = Math.cos(a);
+    const dot = ball.vx * nx + ball.vy * ny;
+    if (dot < 0) {
+      ball.vx -= 2 * dot * nx;
+      ball.vy -= 2 * dot * ny;
+      ball.vy *= 0.85;
+      if (f.active) { ball.vx *= 1.2; ball.vy = -Math.abs(ball.vy) * 1.3; }
+    }
+  }
+
+  function ptSegDist2(px, py, ax, ay, bx, by) {
+    const dx = bx-ax, dy = by-ay;
+    const len2 = dx*dx + dy*dy;
+    if (len2 === 0) return (px-ax)**2 + (py-ay)**2;
+    const t = Math.max(0, Math.min(1, ((px-ax)*dx + (py-ay)*dy) / len2));
+    return (px - (ax+t*dx))**2 + (py - (ay+t*dy))**2;
+  }
+
+  function updateScore(v) {
+    score += v;
+    const el = document.getElementById('pb-score');
+    if (el) el.textContent = score;
+  }
+
+  function loseLife() {
+    lives--;
+    const el = document.getElementById('pb-lives');
+    if (el) el.textContent = '❤️'.repeat(Math.max(0, lives));
+    const msg = document.getElementById('pb-msg');
+    if (lives <= 0) {
+      if (msg) msg.textContent = `GAME OVER! Score:${score}`;
+      ballInPlay = false;
+      ball = { x: 270, y: 380, vx: 0, vy: 0, r: 8 };
+      lives = 3; score = 0;
+      if (document.getElementById('pb-score')) document.getElementById('pb-score').textContent = '0';
+      if (el) el.textContent = '❤️❤️❤️';
+    } else {
+      if (msg) msg.textContent = 'OOPS!';
+      setTimeout(() => { if (msg) msg.textContent = ''; }, 1500);
+      ballInPlay = false;
+      ball = { x: 270, y: 380, vx: 0, vy: 0, r: 8 };
+    }
+  }
+
+  function update() {
+    if (!ballInPlay) return;
+    const GRAVITY = 0.25;
+    ball.vy += GRAVITY;
+    ball.x += ball.vx;
+    ball.y += ball.vy;
+
+    // Wall bounce
+    if (ball.x - ball.r < 4) { ball.x = 4 + ball.r; ball.vx = Math.abs(ball.vx) * 0.85; }
+    if (ball.x + ball.r > W-4) { ball.x = W-4-ball.r; ball.vx = -Math.abs(ball.vx) * 0.85; }
+    if (ball.y - ball.r < 4) { ball.y = 4 + ball.r; ball.vy = Math.abs(ball.vy) * 0.85; }
+
+    // Bumpers
+    bumpers.forEach(b => {
+      const dx = ball.x - b.x, dy = ball.y - b.y;
+      const d = Math.sqrt(dx*dx + dy*dy);
+      if (d < b.r + ball.r) {
+        const nx2 = dx/d, ny2 = dy/d;
+        ball.x = b.x + nx2 * (b.r + ball.r + 1);
+        ball.y = b.y + ny2 * (b.r + ball.r + 1);
+        const spd = Math.sqrt(ball.vx**2 + ball.vy**2);
+        ball.vx = nx2 * Math.max(spd, 4) * 1.1;
+        ball.vy = ny2 * Math.max(spd, 4) * 1.1;
+        b.flash = 8;
+        updateScore(100);
+      }
+    });
+
+    // Flippers
+    [leftFlipper, rightFlipper].forEach(f => {
+      const end = flipperEndpoint(f);
+      const d2 = ptSegDist2(ball.x, ball.y, f.cx, f.cy, end.x, end.y);
+      if (d2 < (ball.r + 5)**2) reflectOffFlipper(f);
+    });
+
+    // Lost ball
+    if (ball.y > H + 20) loseLife();
+  }
+
+  function gameLoop() {
+    if (!document.getElementById('win-pinball')) { cancelAnimationFrame(rafId); return; }
+    rafId = requestAnimationFrame(gameLoop);
+    update();
+    draw();
+  }
+
+  const pbKeys = { z: false, '/': false, ' ': false };
+  const pbKeyDown = e => {
+    if (!document.getElementById('win-pinball')) { document.removeEventListener('keydown', pbKeyDown); document.removeEventListener('keyup', pbKeyUp); return; }
+    if (e.key === 'z' || e.key === 'Z' || e.key === 'ArrowLeft') {
+      leftFlipper.active = true; leftFlipper.angle = -20;
+    }
+    if (e.key === '/' || e.key === 'ArrowRight') {
+      rightFlipper.active = true; rightFlipper.angle = 200;
+    }
+    if (e.key === ' ' && !ballInPlay) {
+      plungerCharging = true;
+      e.preventDefault();
+    }
+  };
+  const pbKeyUp = e => {
+    if (e.key === 'z' || e.key === 'Z' || e.key === 'ArrowLeft') {
+      leftFlipper.active = false; leftFlipper.angle = 30;
+    }
+    if (e.key === '/' || e.key === 'ArrowRight') {
+      rightFlipper.active = false; rightFlipper.angle = 150;
+    }
+    if (e.key === ' ' && plungerCharging) {
+      const power = plungerCharge;
+      plungerCharge = 0; plungerCharging = false;
+      ball.x = 270; ball.y = 380;
+      ball.vx = -1;
+      ball.vy = -(power / 20) - 3;
+      ballInPlay = true;
+    }
+  };
+
+  let chargeInterval = setInterval(() => {
+    if (!document.getElementById('win-pinball')) { clearInterval(chargeInterval); return; }
+    if (plungerCharging) plungerCharge = Math.min(100, plungerCharge + 3);
+  }, 30);
+
+  document.addEventListener('keydown', pbKeyDown);
+  document.addEventListener('keyup', pbKeyUp);
+
+  const pbObs = new MutationObserver(() => {
+    if (!document.getElementById('win-pinball')) {
+      cancelAnimationFrame(rafId);
+      document.removeEventListener('keydown', pbKeyDown);
+      document.removeEventListener('keyup', pbKeyUp);
+      clearInterval(chargeInterval);
+      pbObs.disconnect();
+    }
+  });
+  pbObs.observe(document.getElementById('win98-desktop'), { childList: true, subtree: true });
+
+  rafId = requestAnimationFrame(gameLoop);
+}
+
+/* ─── Bonzi Buddy ─── */
+export function openBonziBuddy() {
+  if (document.getElementById('bonzi-buddy')) return;
+  const desktop = document.getElementById('win98-desktop');
+
+  const MESSAGES = [
+    "Hey! Wanna download some free screensavers?",
+    "Your computer has 47 viruses! Click here to fix!",
+    "You've been online for 3 hours. Your mom called.",
+    "FREE RINGTONES!! Click here!!",
+    "Bonzi Buddy loves you ❤️",
+    "Want to set my homepage as your default? (Recommended)",
+    "You have won a FREE iPod!!!",
+    "Installing helpful toolbar... please wait",
+    "Your horoscope says: click more ads today.",
+    "WARNING: Your Internet Explorer needs updating!",
+  ];
+  let msgIdx = 0;
+
+  const el = document.createElement('div');
+  el.id = 'bonzi-buddy';
+  el.style.cssText = `
+    position:absolute; bottom:40px; right:20px; z-index:6000;
+    width:120px; cursor:pointer; user-select:none;
+    animation: bonzi-bounce 1.8s ease-in-out infinite;
+  `;
+
+  el.innerHTML = `
+    <style>
+      @keyframes bonzi-bounce {
+        0%,100% { transform: translateY(0); }
+        50% { transform: translateY(-8px); }
+      }
+    </style>
+    <div id="bonzi-bubble" style="
+      background:#fffde7; border:2px solid #888; border-radius:8px;
+      padding:7px 9px; font-size:10px; font-family:inherit;
+      box-shadow:2px 2px 4px rgba(0,0,0,0.3); margin-bottom:6px;
+      position:relative; max-width:160px; line-height:1.4;
+    ">
+      <div id="bonzi-text">Hey! Wanna download some free screensavers?</div>
+      <div style="position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-top:8px solid #888"></div>
+      <div style="position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-top:7px solid #fffde7"></div>
+    </div>
+    <svg viewBox="0 0 80 90" width="80" height="90" xmlns="http://www.w3.org/2000/svg">
+      <!-- Body -->
+      <ellipse cx="40" cy="62" rx="28" ry="26" fill="#7b2d8b"/>
+      <!-- Belly -->
+      <ellipse cx="40" cy="66" rx="16" ry="16" fill="#c47ed4"/>
+      <!-- Head -->
+      <circle cx="40" cy="32" r="24" fill="#7b2d8b"/>
+      <!-- Face / muzzle -->
+      <ellipse cx="40" cy="38" rx="14" ry="10" fill="#c47ed4"/>
+      <!-- Eyes -->
+      <circle cx="32" cy="26" r="5" fill="white"/>
+      <circle cx="48" cy="26" r="5" fill="white"/>
+      <circle cx="33" cy="27" r="2.5" fill="#111"/>
+      <circle cx="49" cy="27" r="2.5" fill="#111"/>
+      <!-- Eye shine -->
+      <circle cx="34" cy="25.5" r="1" fill="white"/>
+      <circle cx="50" cy="25.5" r="1" fill="white"/>
+      <!-- Smile -->
+      <path d="M30 40 Q40 50 50 40" stroke="#5a1a6a" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <!-- Teeth -->
+      <rect x="34" y="39" width="5" height="5" rx="1" fill="white"/>
+      <rect x="41" y="39" width="5" height="5" rx="1" fill="white"/>
+      <!-- Ears -->
+      <circle cx="18" cy="20" r="8" fill="#7b2d8b"/>
+      <circle cx="18" cy="20" r="4" fill="#c47ed4"/>
+      <circle cx="62" cy="20" r="8" fill="#7b2d8b"/>
+      <circle cx="62" cy="20" r="4" fill="#c47ed4"/>
+      <!-- Arms -->
+      <ellipse cx="14" cy="62" rx="7" ry="14" fill="#7b2d8b" transform="rotate(-20 14 62)"/>
+      <ellipse cx="66" cy="62" rx="7" ry="14" fill="#7b2d8b" transform="rotate(20 66 62)"/>
+    </svg>
+    <button id="bonzi-close" style="
+      position:absolute; top:0; right:0;
+      background:#c0c0c0; border:1px outset #fff;
+      font-size:9px; cursor:pointer; padding:1px 4px;
+      font-family:inherit; line-height:1;
+    ">✕</button>
+  `;
+
+  desktop.appendChild(el);
+
+  el.addEventListener('click', e => {
+    if (e.target.id === 'bonzi-close') {
+      el.remove();
+      return;
+    }
+    msgIdx = (msgIdx + 1) % MESSAGES.length;
+    const txt = document.getElementById('bonzi-text');
+    if (txt) txt.textContent = MESSAGES[msgIdx];
+    saySpeech(MESSAGES[msgIdx].replace(/!+/g, '!').slice(0, 60), 3500, true);
+  });
+
+  document.getElementById('bonzi-close')?.addEventListener('click', () => el.remove());
+  saySpeech('Bonzi Buddy has entered the chat 🦍', 3000, true);
+}
+
+/* ─── Task Manager ─── */
+export function openTaskManager() {
+  openWindow('taskmanager', 'Windows Task Manager', ICONS.myComputer, `
+    <div style="display:flex;flex-direction:column;height:100%;font-size:11px;font-family:inherit;background:#c0c0c0;box-sizing:border-box">
+      <!-- Tabs -->
+      <div style="display:flex;border-bottom:2px solid #808080;padding-top:4px;padding-left:4px;gap:2px">
+        <button id="tm-tab-proc" style="padding:2px 10px;font-size:11px;font-family:inherit;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;border-bottom:none;cursor:pointer;font-weight:bold">Processes</button>
+        <button id="tm-tab-perf" style="padding:2px 10px;font-size:11px;font-family:inherit;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;border-bottom:none;cursor:pointer">Performance</button>
+      </div>
+      <!-- Processes panel -->
+      <div id="tm-proc-panel" style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr;padding:2px 6px;background:#000080;color:#fff;font-weight:bold;font-size:10px">
+          <span>Image Name</span><span>CPU</span><span>Mem Usage</span>
+        </div>
+        <div id="tm-proc-list" style="flex:1;overflow-y:auto;background:#fff;border:1px inset #808080"></div>
+        <div style="padding:4px 6px;display:flex;gap:6px;align-items:center">
+          <button id="tm-endtask" style="padding:2px 12px;font-size:11px;font-family:inherit;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;cursor:pointer">End Task</button>
+          <span id="tm-proc-count" style="font-size:10px;color:#444">Processes: 0</span>
+        </div>
+      </div>
+      <!-- Performance panel -->
+      <div id="tm-perf-panel" style="flex:1;display:none;flex-direction:column;padding:8px;gap:6px;overflow:auto">
+        <div>
+          <b>CPU Usage</b>
+          <div style="background:#fff;border:1px inset #808080;height:20px;position:relative;margin-top:2px">
+            <div id="tm-cpu-bar" style="height:100%;background:#008000;width:40%;transition:width 0.8s"></div>
+            <span id="tm-cpu-pct" style="position:absolute;right:4px;top:2px;font-size:10px;color:#000">40%</span>
+          </div>
+        </div>
+        <div>
+          <b>CPU History</b>
+          <canvas id="tm-cpu-graph" width="440" height="60" style="background:#000;border:1px inset #808080;display:block;margin-top:2px"></canvas>
+        </div>
+        <div style="font-size:10px;font-family:monospace;background:#fff;border:1px inset #808080;padding:6px">
+          <b>Physical Memory (K)</b><br>
+          Total: 65,536<br>
+          Available: <span id="tm-mem-avail">32,445</span><br>
+          File Cache: 8,192<br>
+          <br>
+          <b>Commit Charge (K)</b><br>
+          Total: <span id="tm-commit">33,091</span><br>
+          Limit: 131,072<br>
+          Peak: 42,880
+        </div>
+      </div>
+    </div>
+  `, { width: 500, height: 400 });
+
+  // Process data
+  const baseProcs = [
+    { name: 'System Idle Process', cpuBase: [60,85], mem: '16 K' },
+    { name: 'EXPLORER.EXE',        cpuBase: [2,5],   mem: '8,432 K' },
+    { name: 'MSGSRV32.EXE',        cpuBase: [0,0],   mem: '1,234 K' },
+    { name: 'MPREXE.EXE',          cpuBase: [0,0],   mem: '892 K' },
+    { name: 'mmtask.tsk',           cpuBase: [0,0],   mem: '456 K' },
+    { name: 'IEXPLORE.EXE',         cpuBase: [5,12],  mem: '24,000 K' },
+    { name: 'BONZI.EXE',            cpuBase: [15,25], mem: '18,234 K' },
+    { name: 'MINESWEEPER.EXE',      cpuBase: [1,3],   mem: '3,128 K', cond: () => !!document.getElementById('win-minesweeper') },
+    { name: 'WINAMP.EXE',           cpuBase: [3,8],   mem: '12,847 K', cond: () => !!document.getElementById('win-winamp') },
+    { name: 'TETRIS.EXE',           cpuBase: [2,6],   mem: '5,120 K', cond: () => !!document.getElementById('win-tetris') },
+  ];
+
+  let spikeProc = null, spikeTimer = 0;
+  const cpuHistory = [];
+
+  function getCPU() {
+    // Simulate idle process being ~70%
+    return 30 + Math.floor(Math.random() * 25);
+  }
+
+  function buildProcList() {
+    const list = document.getElementById('tm-proc-list');
+    if (!list) return;
+    const procs = baseProcs.filter(p => !p.cond || p.cond());
+
+    // Occasional spike
+    spikeTimer--;
+    if (spikeTimer <= 0) {
+      spikeTimer = 10 + Math.floor(Math.random() * 10);
+      spikeProc = procs[Math.floor(Math.random() * procs.length)].name;
+      setTimeout(() => { spikeProc = null; }, 2000);
+    }
+
+    list.innerHTML = procs.map(p => {
+      let cpu;
+      if (p.name === spikeProc) {
+        cpu = '99%';
+      } else {
+        const lo = p.cpuBase[0], hi = p.cpuBase[1];
+        cpu = lo === hi ? `${lo}%` : `${lo + Math.floor(Math.random() * (hi - lo + 1))}%`;
+      }
+      const isSpike = p.name === spikeProc;
+      return `<div style="display:grid;grid-template-columns:2fr 1fr 1fr;padding:1px 6px;font-size:10px;font-family:monospace;${isSpike?'background:#fff0f0;color:#cc0000':''}border-bottom:1px solid #e0e0e0">
+        <span>${p.name}</span><span>${cpu}</span><span>${p.mem}</span>
+      </div>`;
+    }).join('');
+
+    const cnt = document.getElementById('tm-proc-count');
+    if (cnt) cnt.textContent = `Processes: ${procs.length}`;
+  }
+
+  function buildPerfPanel() {
+    const cpuPct = getCPU();
+    cpuHistory.push(cpuPct);
+    if (cpuHistory.length > 60) cpuHistory.shift();
+
+    const bar = document.getElementById('tm-cpu-bar');
+    const pct = document.getElementById('tm-cpu-pct');
+    if (bar) bar.style.width = `${cpuPct}%`;
+    if (pct) pct.textContent = `${cpuPct}%`;
+
+    const avail = 32000 + Math.floor(Math.random() * 1000);
+    const commit = 65536 - avail;
+    const memEl = document.getElementById('tm-mem-avail');
+    const commitEl = document.getElementById('tm-commit');
+    if (memEl) memEl.textContent = avail.toLocaleString();
+    if (commitEl) commitEl.textContent = commit.toLocaleString();
+
+    // Draw graph
+    const g = document.getElementById('tm-cpu-graph');
+    if (g) {
+      const gc = g.getContext('2d');
+      gc.fillStyle = '#000';
+      gc.fillRect(0, 0, g.width, g.height);
+      gc.strokeStyle = '#00ff00';
+      gc.lineWidth = 1;
+      gc.beginPath();
+      cpuHistory.forEach((v, i) => {
+        const x = (i / 59) * g.width;
+        const y = g.height - (v / 100) * g.height;
+        if (i === 0) gc.moveTo(x, y); else gc.lineTo(x, y);
+      });
+      gc.stroke();
+    }
+  }
+
+  let activeTab = 'proc';
+  let tmInterval = setInterval(() => {
+    if (!document.getElementById('win-taskmanager')) { clearInterval(tmInterval); return; }
+    buildProcList();
+    buildPerfPanel();
+  }, 1000);
+  buildProcList();
+
+  document.getElementById('tm-tab-proc')?.addEventListener('click', () => {
+    activeTab = 'proc';
+    document.getElementById('tm-proc-panel').style.display = 'flex';
+    document.getElementById('tm-perf-panel').style.display = 'none';
+    document.getElementById('tm-tab-proc').style.fontWeight = 'bold';
+    document.getElementById('tm-tab-perf').style.fontWeight = 'normal';
+  });
+  document.getElementById('tm-tab-perf')?.addEventListener('click', () => {
+    activeTab = 'perf';
+    document.getElementById('tm-proc-panel').style.display = 'none';
+    document.getElementById('tm-perf-panel').style.display = 'flex';
+    document.getElementById('tm-tab-proc').style.fontWeight = 'normal';
+    document.getElementById('tm-tab-perf').style.fontWeight = 'bold';
+  });
+
+  document.getElementById('tm-endtask')?.addEventListener('click', () => {
+    openWindow('endtask-dlg', 'End Task', ICONS.myComputer, `
+      <div style="padding:12px;font-size:12px">
+        <p>⚠️ This program is not responding.</p>
+        <p style="margin-top:8px">To return to Windows and check the program status,<br>click Cancel.</p>
+        <p style="margin-top:4px">If you choose to end the task immediately, you will lose<br>any unsaved data. To end the task anyway, click End Task.</p>
+        <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end">
+          <button id="etd-end" style="padding:3px 12px;font-size:11px;font-family:inherit;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;cursor:pointer">End Task</button>
+          <button id="etd-cancel" style="padding:3px 12px;font-size:11px;font-family:inherit;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;cursor:pointer">Cancel</button>
+        </div>
+      </div>
+    `, { width: 340, height: 180 });
+    document.getElementById('etd-end')?.addEventListener('click', () => {
+      saySpeech('Task terminated. Or did it? 👻', 3000, true);
+      closeWindow('endtask-dlg');
+    });
+    document.getElementById('etd-cancel')?.addEventListener('click', () => closeWindow('endtask-dlg'));
+  });
+
+  saySpeech('Ctrl+Alt+Delete: the universal solve-everything combo 🖥️', 4000, true);
+}
+
+/* ─── Dial-up Internet ─── */
+export function openDialup() {
+  openWindow('dialup', 'Connecting to Internet...', ICONS.internet, `
+    <div style="padding:12px;font-size:12px;font-family:inherit;width:340px;box-sizing:border-box">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <div id="dialup-icon" style="font-size:28px;animation:dialup-spin 0.5s linear infinite">📞</div>
+        <div>
+          <div style="font-weight:bold">Connecting to: Internet</div>
+          <div style="font-size:10px;color:#444">Phone number: 1-800-555-0196</div>
+        </div>
+      </div>
+      <div style="background:#fff;border:1px inset #808080;padding:6px;min-height:80px;font-family:monospace;font-size:11px;overflow-y:auto" id="dialup-log"></div>
+      <div style="margin-top:8px;background:#c0c0c0;border:1px inset #808080;height:14px">
+        <div id="dialup-bar" style="height:100%;width:0%;background:#000080;transition:width 0.5s"></div>
+      </div>
+      <div style="margin-top:10px;display:flex;justify-content:flex-end">
+        <button id="dialup-cancel" style="padding:3px 14px;font-size:11px;font-family:inherit;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;cursor:pointer">Cancel</button>
+      </div>
+    </div>
+    <style>
+      @keyframes dialup-spin {
+        0% { transform: rotate(0deg); }
+        25% { transform: rotate(10deg); }
+        75% { transform: rotate(-10deg); }
+        100% { transform: rotate(0deg); }
+      }
+    </style>
+  `, { width: 380, height: 240 });
+
+  document.getElementById('dialup-cancel')?.addEventListener('click', () => closeWindow('dialup'));
+
+  const log = document.getElementById('dialup-log');
+  const bar = document.getElementById('dialup-bar');
+
+  function addLog(msg, delay) {
+    return new Promise(resolve => setTimeout(() => {
+      if (!log) { resolve(); return; }
+      const line = document.createElement('div');
+      line.textContent = msg;
+      log.appendChild(line);
+      log.scrollTop = log.scrollHeight;
+      resolve();
+    }, delay));
+  }
+
+  function setBar(pct) {
+    if (bar) bar.style.width = `${pct}%`;
+  }
+
+  // Web Audio modem sounds
+  function playModemSounds() {
+    try {
+      const ctx = getAudioCtx();
+      let t = ctx.currentTime;
+
+      // Dial tone (440 Hz for 0.5s)
+      const osc1 = ctx.createOscillator();
+      const g1 = ctx.createGain();
+      osc1.frequency.value = 440;
+      g1.gain.setValueAtTime(0.15, t);
+      g1.gain.setValueAtTime(0, t + 0.5);
+      osc1.connect(g1); g1.connect(ctx.destination);
+      osc1.start(t); osc1.stop(t + 0.5);
+
+      // DTMF-ish dialing beeps
+      const dtmfFreqs = [941, 1336, 697, 1477, 770, 1209, 852, 1336, 697, 1209];
+      dtmfFreqs.forEach((f, i) => {
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
+        osc.frequency.value = f;
+        const start = t + 0.6 + i * 0.15;
+        g.gain.setValueAtTime(0.12, start);
+        g.gain.setValueAtTime(0, start + 0.1);
+        osc.connect(g); g.connect(ctx.destination);
+        osc.start(start); osc.stop(start + 0.1);
+      });
+
+      // Ring tones
+      const ringStart = t + 2.3;
+      for (let r = 0; r < 2; r++) {
+        const rs = ringStart + r * 1.2;
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
+        osc.frequency.value = 480;
+        g.gain.setValueAtTime(0.18, rs);
+        g.gain.setValueAtTime(0, rs + 0.8);
+        osc.connect(g); g.connect(ctx.destination);
+        osc.start(rs); osc.stop(rs + 0.8);
+      }
+
+      // Negotiation noise — chaotic frequency sweeps
+      const noiseStart = t + 4.8;
+      for (let i = 0; i < 15; i++) {
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
+        const ns = noiseStart + i * 0.2;
+        osc.frequency.setValueAtTime(300 + Math.random() * 2800, ns);
+        osc.frequency.exponentialRampToValueAtTime(200 + Math.random() * 3200, ns + 0.18);
+        g.gain.setValueAtTime(0.08, ns);
+        g.gain.setValueAtTime(0, ns + 0.18);
+        osc.connect(g); g.connect(ctx.destination);
+        osc.start(ns); osc.stop(ns + 0.2);
+      }
+
+      // Connected tone
+      const connStart = t + 7.8;
+      const connOsc = ctx.createOscillator();
+      const connG = ctx.createGain();
+      connOsc.frequency.value = 2100;
+      connG.gain.setValueAtTime(0.2, connStart);
+      connG.gain.setValueAtTime(0, connStart + 0.3);
+      connOsc.connect(connG); connG.connect(ctx.destination);
+      connOsc.start(connStart); connOsc.stop(connStart + 0.4);
+    } catch(e) { /* audio not available */ }
+  }
+
+  async function runDialup() {
+    playModemSounds();
+    setBar(5);
+    await addLog('Dialing 1-800-555-0196...', 200);
+    await addLog('  1... 8... 0... 0... 5... 5... 5...', 800);
+    setBar(20);
+    await addLog('Waiting for answer...', 1500);
+    await addLog('  *ring* *ring*', 500);
+    setBar(40);
+    await addLog('  *ring* *ring*', 1200);
+    setBar(55);
+    await addLog('Negotiating connection speed...', 500);
+    await addLog('  CARRRRRRIIIEEERRR DEEEETECT', 800);
+    await addLog('  skreeeeeeeee BONG BONG eeeeeee', 600);
+    await addLog('  kshhhhhhhhhhhhhhhhhhhhhhhh', 400);
+    setBar(75);
+    await addLog('Verifying username and password...', 1200);
+    setBar(90);
+    await addLog('  Checking credentials...', 800);
+    await addLog('  ✓ Access granted!', 400);
+    setBar(100);
+    await addLog('✅ Connected to Internet! 56 Kbps', 300);
+
+    // Show "you've got mail" notification
+    setTimeout(() => {
+      if (!document.getElementById('win-dialup')) return;
+      closeWindow('dialup');
+      // Show mail notification
+      const note = document.createElement('div');
+      note.style.cssText = `
+        position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+        background:#ffffcc; border:2px solid #888; padding:16px 24px;
+        font-family:inherit; font-size:13px; z-index:9999;
+        box-shadow:4px 4px 8px rgba(0,0,0,0.4); text-align:center;
+      `;
+      note.innerHTML = `<div style="font-size:24px;margin-bottom:8px">📧</div>
+        <b>You've Got Mail!</b><br><span style="font-size:11px">3 unread messages</span><br>
+        <button style="margin-top:10px;padding:3px 14px;font-family:inherit;font-size:11px;background:#c0c0c0;border:2px solid;border-color:#fff #808080 #808080 #fff;cursor:pointer" onclick="this.parentElement.remove()">OK</button>`;
+      document.body.appendChild(note);
+      saySpeech('Connected at 56 Kbps! You\'ve got mail! 📧', 4000, true);
+    }, 500);
+  }
+
+  runDialup();
+}
+
+/* ─── Ransomware ─── */
+export function openRansomware() {
+  openWindow('ransomware', '⚠️ CRITICAL SYSTEM ERROR ⚠️', ICONS.mine, `
+    <div id="ransom-root" style="
+      background:#000; color:#ff0000; font-family:'Courier New',monospace;
+      height:100%; display:flex; flex-direction:column; align-items:center;
+      justify-content:center; padding:16px; box-sizing:border-box; text-align:center;
+      user-select:none;
+    ">
+      <div style="font-size:36px;margin-bottom:8px">💀</div>
+      <div style="font-size:13px;font-weight:bold;letter-spacing:1px;text-shadow:0 0 8px #f00;margin-bottom:8px">
+        ⚠️ YOUR FILES HAVE BEEN ENCRYPTED ⚠️
+      </div>
+      <div style="font-size:10px;color:#ff6666;max-width:380px;line-height:1.5;margin-bottom:10px">
+        All your documents, photos, and cat pictures have been encrypted with AES-256.<br>
+        Send <b style="color:#ff0">0.003 BTC</b> to unlock.
+      </div>
+      <div style="background:#111;border:1px solid #ff0000;padding:6px 10px;font-size:9px;color:#ff0;margin-bottom:10px;word-break:break-all">
+        1BONZI8UdDY4n8gt4j7k9XbFakeNotRealDoNotSend
+      </div>
+      <div style="font-size:11px;color:#ff8888;margin-bottom:4px">Time remaining to pay:</div>
+      <div id="ransom-timer" style="font-size:20px;font-weight:bold;color:#ff0;text-shadow:0 0 10px #ff0;margin-bottom:12px;letter-spacing:2px">72:00:00</div>
+      <div style="display:flex;gap:10px;margin-bottom:12px">
+        <button id="ransom-pay" style="
+          background:#cc0000; color:#fff; border:2px solid #ff0000;
+          padding:6px 18px; font-family:'Courier New',monospace; font-size:11px;
+          cursor:pointer; font-weight:bold; text-transform:uppercase;
+          box-shadow:0 0 8px #f00;
+        ">💰 PAY NOW</button>
+        <button id="ransom-scared" style="
+          background:#330000; color:#ff6666; border:2px solid #660000;
+          padding:6px 18px; font-family:'Courier New',monospace; font-size:11px;
+          cursor:pointer;
+        ">😱 I'm scared</button>
+      </div>
+      <div style="font-size:9px;color:#660000">
+        This is a joke. No files were harmed. (probably)
+      </div>
+    </div>
+  `, { width: 460, height: 400 });
+
+  // Countdown timer
+  let totalSec = 72 * 3600;
+  const timerEl = document.getElementById('ransom-timer');
+  const timerInt = setInterval(() => {
+    if (!timerEl || !document.getElementById('win-ransomware')) { clearInterval(timerInt); return; }
+    totalSec = Math.max(0, totalSec - 1);
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    timerEl.textContent = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+  }, 1000);
+
+  // Flash background
+  const root = document.getElementById('ransom-root');
+  let flashState = false;
+  const flashInt = setInterval(() => {
+    if (!root || !document.getElementById('win-ransomware')) { clearInterval(flashInt); return; }
+    flashState = !flashState;
+    root.style.background = flashState ? '#1a0000' : '#000000';
+  }, 600);
+
+  // Critical stop sound (synthesized)
+  try {
+    const ctx = getAudioCtx();
+    const t = ctx.currentTime;
+    [440, 370, 310].forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.frequency.value = freq;
+      osc.type = 'square';
+      g.gain.setValueAtTime(0.18, t + i * 0.15);
+      g.gain.setValueAtTime(0, t + i * 0.15 + 0.12);
+      osc.connect(g); g.connect(ctx.destination);
+      osc.start(t + i * 0.15);
+      osc.stop(t + i * 0.15 + 0.15);
+    });
+  } catch(e) { /* audio */ }
+
+  document.getElementById('ransom-pay')?.addEventListener('click', () => {
+    const btn = document.getElementById('ransom-pay');
+    if (btn) { btn.textContent = 'just kidding lol 😂'; btn.style.background = '#006600'; btn.style.borderColor = '#00cc00'; }
+    saySpeech('just kidding lol 😂 No BTC was harmed.', 4000, true);
+  });
+
+  document.getElementById('ransom-scared')?.addEventListener('click', () => {
+    clearInterval(timerInt);
+    clearInterval(flashInt);
+    closeWindow('ransomware');
+    saySpeech('Don\'t worry, it\'s just a prank! 👻', 3500, true);
   });
 }
