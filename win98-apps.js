@@ -328,6 +328,7 @@ export function openExclamationE(startUrl) {
     setStatus(txt || 'Connecting…');
   }
   function showError() {
+    console.log('[!e] showError() called for', currentUrl);
     if (loading) loading.style.display = 'none';
     if (errDiv)  errDiv.style.display  = 'block';
     setStatus(`Cannot display: ${currentUrl}`);
@@ -359,36 +360,40 @@ export function openExclamationE(startUrl) {
     }
 
     const myId = ++_navId;
+    console.log('[!e] navigate → myId=', myId, 'target=', target);
     frame.src  = target;
 
     // Fallback: if load never fires within 10s (server down / extreme slowness)
-    loadTimer = setTimeout(() => { if (_navId === myId) showError(); }, 10000);
+    loadTimer = setTimeout(() => {
+      if (_navId === myId) { console.log('[!e] timeout fired for navId=', myId); showError(); }
+    }, 10000);
   }
 
   frame.addEventListener('load', () => {
-    // _navId === 0: no navigation started yet → this is the iframe's initial
-    // about:blank firing; ignore it entirely.
-    if (_navId === 0) return;
+    console.log('[!e] load event fired, _navId=', _navId, 'src=', frame.src);
+    if (_navId === 0) { console.log('[!e] ignoring pre-nav load'); return; }
     clearTimeout(loadTimer);
 
-    const snapId = _navId; // capture in case of re-navigation during async recheck
+    const snapId = _navId;
 
     try {
-      // contentDocument accessible → same-origin (or blocked → about:blank)
       const loc = frame.contentDocument?.location?.href ?? '';
+      console.log('[!e] contentDocument accessible, loc=', loc);
       if (!loc || loc === 'about:blank') showError();
       else { hideLoading(); if (addr) addr.value = loc; }
-    } catch {
-      // SecurityError → cross-origin → page loaded fine
-      // Recheck once after 400ms: if by then contentDocument is accessible and
-      // blank, the browser quietly killed the load (X-Frame-Options).
+    } catch (err) {
+      console.log('[!e] contentDocument threw (cross-origin):', err.name, '— rechecking in 400ms');
       setTimeout(() => {
-        if (_navId !== snapId) return; // navigated elsewhere, skip
+        if (_navId !== snapId) { console.log('[!e] nav changed, skip recheck'); return; }
         try {
           const loc2 = frame.contentDocument?.location?.href ?? '';
+          console.log('[!e] recheck: contentDocument accessible, loc2=', loc2);
           if (!loc2 || loc2 === 'about:blank') showError();
           else hideLoading();
-        } catch { hideLoading(); } // still cross-origin → success
+        } catch (err2) {
+          console.log('[!e] recheck: still cross-origin →', err2.name, '→ hideLoading');
+          hideLoading();
+        }
       }, 400);
     }
   });
