@@ -1154,6 +1154,12 @@ function openICQProps() {
 const RSS_FEED = 'https://neoblog-ten.vercel.app/atom.xml';
 let _rssEntries = [];
 
+// Namespace-safe helper: get first child element by local tag name
+function xmlGet(el, tag) {
+  // getElementsByTagName ignores XML namespaces, works for Atom feeds
+  return el.getElementsByTagName(tag)[0] ?? null;
+}
+
 async function loadRSS() {
   const listEl  = document.getElementById('rss-list');
   const infoEl  = document.getElementById('rss-info');
@@ -1166,14 +1172,27 @@ async function loadRSS() {
   try {
     const res  = await fetch(RSS_FEED);
     const text = await res.text();
+
+    // Parse as XML — but use getElementsByTagName (namespace-agnostic) instead of
+    // querySelectorAll, because Atom feeds declare xmlns which breaks CSS selectors.
     const doc  = new DOMParser().parseFromString(text, 'application/xml');
-    _rssEntries = Array.from(doc.querySelectorAll('entry'));
+
+    // Check for parse errors
+    const parseErr = doc.querySelector('parsererror');
+    if (parseErr) throw new Error('XML parse error: ' + parseErr.textContent.slice(0, 80));
+
+    _rssEntries = Array.from(doc.getElementsByTagName('entry'));
 
     if (infoEl) { infoEl.textContent = `📰 ${_rssEntries.length} posts`; infoEl.style.color = '#fff'; }
 
+    if (_rssEntries.length === 0) {
+      listEl.innerHTML = '<div style="padding:8px;font-size:10px;color:#c00">No entries found in feed.</div>';
+      return;
+    }
+
     listEl.innerHTML = _rssEntries.map((e, i) => {
-      const title = e.querySelector('title')?.textContent ?? '(untitled)';
-      const date  = (e.querySelector('published,updated')?.textContent ?? '').slice(0, 10);
+      const title = xmlGet(e, 'title')?.textContent ?? '(untitled)';
+      const date  = (xmlGet(e, 'published') ?? xmlGet(e, 'updated'))?.textContent?.slice(0, 10) ?? '';
       return `<div class="rss-item" data-idx="${i}"
         style="padding:5px 8px;border-bottom:1px solid #e8e8e8;cursor:pointer;user-select:none">
         <div style="font-weight:bold;font-size:10px;line-height:1.3;margin-bottom:1px">${title}</div>
@@ -1185,35 +1204,41 @@ async function loadRSS() {
       item.addEventListener('click', () => {
         listEl.querySelectorAll('.rss-item').forEach(r => {
           r.style.background = ''; r.style.color = '';
+          const sub = r.querySelector('div:last-child');
+          if (sub) sub.style.color = '';
         });
         item.style.background = '#000080'; item.style.color = '#fff';
-        item.querySelector('div:last-child').style.color = '#adf';
+        const sub = item.querySelector('div:last-child');
+        if (sub) sub.style.color = '#adf';
         showRSSEntry(_rssEntries[parseInt(item.dataset.idx)], bodyEl);
       });
       item.addEventListener('dblclick', () => {
-        const link = _rssEntries[parseInt(item.dataset.idx)]?.querySelector('link')?.getAttribute('href');
+        const entry = _rssEntries[parseInt(item.dataset.idx)];
+        const link  = xmlGet(entry, 'link')?.getAttribute('href');
         if (link) window.open(link, '_blank');
       });
     });
 
     if (_rssEntries.length) listEl.querySelector('.rss-item')?.click();
   } catch (err) {
+    console.error('RSS load error:', err);
     if (infoEl) { infoEl.textContent = '❌ Failed to load'; infoEl.style.color = '#f88'; }
     listEl.innerHTML = `<div style="padding:10px;font-size:10px;color:#c00">
-      Could not fetch RSS feed.<br><br>
-      <a href="https://blog.yuzhes.com" target="_blank" style="color:#00f">Open blog in browser</a>
+      ${err.message ?? 'Could not fetch RSS feed.'}<br><br>
+      <a href="https://blog.yuzhes.com" target="_blank" style="color:#00f">Open blog in browser ↗</a>
     </div>`;
   }
 }
 
 function showRSSEntry(entry, bodyEl) {
   if (!bodyEl || !entry) return;
-  const title   = entry.querySelector('title')?.textContent ?? '';
-  const date    = (entry.querySelector('published,updated')?.textContent ?? '').slice(0, 10);
-  const link    = entry.querySelector('link')?.getAttribute('href') ?? '#';
-  const rawHTML = entry.querySelector('content,summary')?.textContent ?? '';
-  // Strip HTML tags for plain text preview
-  const text    = rawHTML.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim().slice(0, 1200);
+  const title   = xmlGet(entry, 'title')?.textContent ?? '';
+  const date    = (xmlGet(entry, 'published') ?? xmlGet(entry, 'updated'))?.textContent?.slice(0, 10) ?? '';
+  const linkEl  = xmlGet(entry, 'link');
+  const link    = linkEl?.getAttribute('href') ?? '#';
+  // Content may be CDATA-wrapped HTML; get raw text then strip tags
+  const rawHTML = (xmlGet(entry, 'content') ?? xmlGet(entry, 'summary'))?.textContent ?? '';
+  const text    = rawHTML.replace(/<[^>]+>/g, '').replace(/&[a-z]+;/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 1200);
 
   bodyEl.innerHTML = `
     <div style="border-bottom:1px solid #c0c0c0;padding-bottom:8px;margin-bottom:8px">
