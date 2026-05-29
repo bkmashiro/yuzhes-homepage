@@ -934,8 +934,9 @@ function openExclamationE(startUrl) {
     navigate(currentUrl, false);
   });
 
-  // Initial load
-  navigate(url, false);
+  // Delay first navigation by one tick so the iframe's initial about:blank
+  // load event fires BEFORE _pendingNav is set true — avoids spurious error page
+  setTimeout(() => navigate(url, false), 50);
 }
 
 function openMineHighScores() {
@@ -1351,9 +1352,6 @@ function openICQProps() {
 /* ─── Blog RSS Reader ─── */
 const RSS_FEED_URLS = [
   'https://neoblog-ten.vercel.app/atom.xml',
-  // CORS proxy fallbacks if the primary is down
-  'https://corsproxy.io/?url=https://neoblog-ten.vercel.app/atom.xml',
-  'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://neoblog-ten.vercel.app/atom.xml'),
 ];
 let _rssEntries = [];
 
@@ -1453,10 +1451,14 @@ async function loadRSS() {
     if (_rssEntries.length) listEl.querySelector('.rss-item')?.click();
   } catch (err) {
     console.error('RSS load error:', err);
-    if (infoEl) { infoEl.textContent = '❌ Failed'; infoEl.style.color = '#f88'; }
-    listEl.innerHTML = `<div style="padding:10px;font-size:10px;color:#c00">
-      ${err.message ?? 'Could not fetch feed.'}<br><br>
-      <a href="https://blog.yuzhes.com" target="_blank" style="color:#00f">Open blog ↗</a>
+    const isDown = /503|502|fetch|network/i.test(err.message ?? '');
+    if (infoEl) { infoEl.textContent = '❌ Feed unavailable'; infoEl.style.color = '#f88'; }
+    listEl.innerHTML = `<div style="padding:10px;font-size:11px;color:#800000;line-height:1.6">
+      ${isDown
+        ? '📡 Feed server is temporarily down (503).<br>Try again later or visit the blog directly.'
+        : `Error: ${err.message ?? 'Could not fetch feed.'}`
+      }<br><br>
+      <a href="https://blog.yuzhes.com" target="_blank" style="color:#0000ff">Open blog.yuzhes.com ↗</a>
     </div>`;
   }
 }
