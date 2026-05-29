@@ -3537,7 +3537,7 @@ export function initICQTray() {
       box-shadow:2px 2px 6px rgba(0,0,0,0.35);z-index:9998;
       white-space:nowrap;border-radius:2px;
     `;
-    popup.innerHTML = `<b>ICQ:</b> SuN_SHiNe_GiRL (23/F/CA) is now online! 💛`;
+    popup.innerHTML = `<b>ICQ:</b> Rei_Ayanami_00 (14/F/Tokyo) is now online! 💙`;
     desktop.appendChild(popup);
 
     // Fade out after 5 seconds
