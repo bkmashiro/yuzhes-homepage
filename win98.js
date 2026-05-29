@@ -333,9 +333,12 @@ function initDesktopIcons() {
     el.className = 'desktop-icon';
     el.innerHTML = `<img src="${def.icon}" alt=""><span>${def.label}</span>`;
 
-    // Initial grid position
-    el.style.left = '10px';
-    el.style.top  = `${10 + i * 90}px`;
+    // Initial grid position — wrap to next column after 9 icons
+    const MAX_PER_COL = 9;
+    const col = Math.floor(i / MAX_PER_COL);
+    const row = i % MAX_PER_COL;
+    el.style.left = `${10 + col * 80}px`;
+    el.style.top  = `${10 + row * 90}px`;
 
     // Drag state
     let dragStartX, dragStartY, iconStartLeft, iconStartTop, hasMoved;
